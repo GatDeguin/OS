@@ -4,6 +4,7 @@ import { CSS3DRenderer, CSS3DObject } from 'three/addons/CSS3DRenderer.js';
 import { OrbitControls } from 'three/addons/OrbitControls.js';
 import { initWindowSystem, spawnWindow } from './win.js';
 import { setupHands } from './hands.js';
+import { APPS } from './pluginApi.js';
 
 /* ---------- Constantes ---------- */
 const container = document.getElementById('container');
@@ -218,15 +219,6 @@ Object.assign(controls, {
 });
 
 /* ---------- Íconos ---------- */
-const APPS = [
-  { id: 'term',  name: 'Terminal',     icon: 'https://img.icons8.com/fluency/96/console.png' },
-  { id: 'edit',  name: 'Editor',       icon: 'https://img.icons8.com/fluency/96/notepad.png' },
-  { id: 'web',   name: 'Web',          icon: 'https://img.icons8.com/fluency/96/internet.png' },
-  { id: 'clock', name: 'Reloj',        icon: 'https://img.icons8.com/fluency/96/alarm.png' },
-  { id: 'calc',  name: 'Calculadora',  icon: 'https://img.icons8.com/fluency/96/calculator.png' },
-  { id: 'settings', name: 'Ajustes',   icon: 'https://img.icons8.com/fluency/96/settings.png' }
-];
-
 const iconObjs = [];
 const savedIconPos = JSON.parse(localStorage.getItem('iconPositions') || '{}');
 
