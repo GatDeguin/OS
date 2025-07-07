@@ -9,9 +9,25 @@ const video     = document.getElementById('camera');
 const overlay   = document.getElementById('overlay');
 const msgEl     = document.getElementById('overlay-msg');
 const overlayStartBtn  = document.getElementById('start-btn');
+const cameraSelect = document.getElementById('camera-select');
 const startButton = document.getElementById('start-button');
 const startMenu   = document.getElementById('start-menu');
 const size      = { w: innerWidth, h: innerHeight };
+
+async function populateCameraOptions() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cams = devices.filter(d => d.kind === 'videoinput');
+  cameraSelect.innerHTML = '';
+  cams.forEach((cam, i) => {
+    const opt = document.createElement('option');
+    opt.value = cam.deviceId;
+    opt.textContent = cam.label || `C\u00e1mara ${i + 1}`;
+    cameraSelect.appendChild(opt);
+  });
+}
+
+populateCameraOptions();
 
 /* ---------- ESCENA ---------- */
 const sceneGL  = new THREE.Scene();
@@ -278,7 +294,14 @@ const finger = [4, 8];
 
 hands.onResults(({ multiHandLandmarks: [lm] }) => {
   ctx2.clearRect(0, 0, size.w, size.h);
-  if (!lm) return;
+  if (!lm) {
+    grabbing = false;
+    target = null;
+    return;
+  }
+
+  drawConnectors(ctx2, lm, HAND_CONNECTIONS, { color: '#0f0', lineWidth: 2 });
+  drawLandmarks(ctx2, lm, { color: '#0f0', lineWidth: 1 });
 
   const [p1, p2] = finger.map(i => lm[i]);
   const mid  = { x: (p1.x + p2.x) / 2 * size.w, y: (p1.y + p2.y) / 2 * size.h };
@@ -325,13 +348,15 @@ function startWithoutCamera(msg) {
   setTimeout(() => overlay.classList.add('hidden'), 2000);
 }
 
-function startCamera() {
+function startCamera(deviceId) {
   const media = navigator.mediaDevices;
   if (!media || !media.getUserMedia) {
     startWithoutCamera('C\u00e1mara no disponible. Usa mouse o t\u00e1ctil.');
     return;
   }
-  media.getUserMedia({ video: { width: 640, height: 480 } })
+  const constraints = { video: { width: 640, height: 480 } };
+  if (deviceId) constraints.video.deviceId = { exact: deviceId };
+  media.getUserMedia(constraints)
     .then(stream => {
       video.srcObject = stream;
       video.play();
@@ -345,7 +370,7 @@ function startCamera() {
     });
 }
 
-overlayStartBtn.onclick = () => startCamera();
+overlayStartBtn.onclick = () => startCamera(cameraSelect.value);
 
 video.onplaying = function loop() {
   hands.send({ image: video });
