@@ -511,16 +511,20 @@ function startCamera(deviceId) {
 
 overlayStartBtn.onclick = () => startCamera(cameraSelect.value);
 
-/* ---------- Resize ---------- */
-addEventListener('resize', () => {
-  size.w = innerWidth; size.h = innerHeight;
+/* ---------- Resize & Orientation ---------- */
+function handleResize() {
+  size.w = innerWidth;
+  size.h = innerHeight;
   orientation = size.w >= size.h ? 'landscape' : 'portrait';
   camera.aspect = size.w / size.h;
   camera.updateProjectionMatrix();
   [rendererGL, rendererCSS].forEach(r => r.setSize(size.w, size.h));
   layoutIcons();
   updatePhysicsBounds();
-});
+}
+
+addEventListener('resize', handleResize);
+addEventListener('orientationchange', handleResize);
 
 /* ---------- Bucle ---------- */
 (function animate() {
