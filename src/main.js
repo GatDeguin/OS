@@ -6,6 +6,7 @@ import { initWindowSystem, spawnWindow } from './win.js';
 import { setupHands } from './hands.js';
 import { setupGaze } from './gaze.js';
 import { APPS } from './pluginApi.js';
+import * as CANNON from 'cannon-es';
 
 /* ---------- Constantes ---------- */
 const container = document.getElementById('container');
@@ -175,6 +176,30 @@ const sceneCSS = new THREE.Scene();
 const camera   = new THREE.PerspectiveCamera(50, size.w / size.h, 1, 2000);
 camera.position.set(0, 0, 650);
 
+/* Physics */
+const world = new CANNON.World({ gravity: new CANNON.Vec3(0, 0, 0) });
+world.broadphase = new CANNON.NaiveBroadphase();
+const walls = [];
+function updatePhysicsBounds(){
+  walls.forEach(w => world.removeBody(w));
+  walls.length = 0;
+  const halfH = camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const halfW = halfH * camera.aspect;
+  const t = 10;
+  const make = (x,y,w,h)=>{
+    const b=new CANNON.Body({ mass:0 });
+    b.addShape(new CANNON.Box(new CANNON.Vec3(w, h, t)));
+    b.position.set(x,y,0);
+    world.addBody(b);
+    walls.push(b);
+  };
+  make(-halfW - t, 0, t, halfH + t);
+  make( halfW + t, 0, t, halfH + t);
+  make(0,  halfH + t, halfW + t, t);
+  make(0, -halfH - t, halfW + t, t);
+}
+updatePhysicsBounds();
+
 /* Renderizadores */
 const rendererGL  = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 const rendererCSS = new CSS3DRenderer();
@@ -259,10 +284,8 @@ let orientation = size.w >= size.h ? 'landscape' : 'portrait';
 function saveIconPositions() {
   const data = {};
   iconObjs.forEach(obj => {
-    data[obj.userData.id] = {
-      x: obj.userData.basePos.x,
-      y: obj.userData.basePos.y
-    };
+    const p = obj.userData.body ? obj.userData.body.position : obj.userData.basePos;
+    data[obj.userData.id] = { x: p.x, y: p.y };
   });
   localStorage.setItem('iconPositions', JSON.stringify(data));
 }
@@ -283,6 +306,10 @@ function layoutIcons() {
     const y = startY - row * spacing;
     obj.userData.basePos.set(x, y, 0);
     obj.position.copy(obj.userData.basePos);
+    if(obj.userData.body){
+      obj.userData.body.position.set(x, y, 0);
+      obj.userData.body.velocity.set(0,0,0);
+    }
     j++;
   });
 }
@@ -300,11 +327,12 @@ function enableIconDrag(obj) {
     const pxToWorld = halfH * 2 / size.h;
     const limitX = halfW - 60 * pxToWorld;
     const limitY = halfH - 60 * pxToWorld;
-    obj.userData.basePos.set(
-      THREE.MathUtils.clamp(newX, -limitX, limitX),
-      THREE.MathUtils.clamp(newY, -limitY, limitY),
-      0
-    );
+    const clampedX = THREE.MathUtils.clamp(newX, -limitX, limitX);
+    const clampedY = THREE.MathUtils.clamp(newY, -limitY, limitY);
+    const body = obj.userData.body;
+    const dx = clampedX - body.position.x;
+    const dy = clampedY - body.position.y;
+    body.applyImpulse(new CANNON.Vec3(dx * 5, dy * 5, 0), body.position);
     e.preventDefault();
   };
 
@@ -316,17 +344,22 @@ function enableIconDrag(obj) {
   };
 
   el.addEventListener('mousedown', e => {
-    start = { x: e.clientX, y: e.clientY, pos: obj.userData.basePos.clone() };
+    start = { x: e.clientX, y: e.clientY, pos: obj.userData.body.position.clone() };
+    el.classList.add('touching');
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', endDrag, { once: true });
   });
 
   el.addEventListener('touchstart', e => {
     const c = e.touches[0];
-    start = { x: c.clientX, y: c.clientY, pos: obj.userData.basePos.clone() };
+    start = { x: c.clientX, y: c.clientY, pos: obj.userData.body.position.clone() };
+    el.classList.add('touching');
     document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('touchend', endDrag, { once: true });
   });
+
+  ['mouseup', 'touchend'].forEach(ev =>
+    el.addEventListener(ev, () => el.classList.remove('touching')));
 }
 
 APPS.forEach((app, i) => {
@@ -339,11 +372,20 @@ APPS.forEach((app, i) => {
     basePos: new THREE.Vector3(),
     custom: false
   };
+  const body = new CANNON.Body({ mass: 1 });
+  body.addShape(new CANNON.Sphere(60));
+  obj.userData.body = body;
+  body.addEventListener('collide', () => {
+    el.classList.add('squish');
+    setTimeout(() => el.classList.remove('squish'), 200);
+  });
   iconObjs.push(obj);
   sceneCSS.add(obj);
+  world.addBody(body);
   if (savedIconPos[app.id]) {
     obj.userData.basePos.set(savedIconPos[app.id].x, savedIconPos[app.id].y, 0);
     obj.position.copy(obj.userData.basePos);
+    body.position.set(obj.userData.basePos.x, obj.userData.basePos.y, 0);
     obj.userData.custom = true;
   }
   el.addEventListener('click', () => spawnWindow(app));
@@ -451,6 +493,7 @@ addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   [rendererGL, rendererCSS].forEach(r => r.setSize(size.w, size.h));
   layoutIcons();
+  updatePhysicsBounds();
 });
 
 /* ---------- Bucle ---------- */
@@ -464,9 +507,14 @@ addEventListener('resize', () => {
   sceneGL.position.y = y * 30;
   sceneCSS.position.x = sceneGL.position.x;
   sceneCSS.position.y = sceneGL.position.y;
+  const delta = 1 / 60;
+  world.step(delta);
   const t = performance.now() / 1000;
   iconObjs.forEach((obj, i) => {
-    obj.position.y = obj.userData.basePos.y + Math.sin(t + i) * 5;
+    const body = obj.userData.body;
+    obj.userData.basePos.copy(body.position);
+    obj.position.set(body.position.x, body.position.y + Math.sin(t + i) * 5, body.position.z);
+    obj.quaternion.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
   });
   stars.rotation.y += 0.0005;
   rendererGL.render(sceneGL, camera);
