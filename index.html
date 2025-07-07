@@ -6,7 +6,9 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
   <title>OS 3D — Interacción Mano</title>
-  <!-- Favicon to avoid 404 requests -->
+  <!-- <base href="/OS/">  Descomenta si tu página está en /OS/ dentro de GitHub Pages -->
+
+  <!-- Favicon para evitar 404 -->
   <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAPAAAP///wAAACwAAAAAAQABAEACAkQBADs=">
 
   <!-- =======================  ESTILOS  ======================= -->
@@ -19,29 +21,28 @@
       --window:#fff;
       --shadow:0 4px 12px rgba(0,0,0,.45);
     }
-
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',sans-serif}
 
-    #container{position:relative;width:100%;height:100%}
+    /* ---------- Orden de capas ---------- */
+    #container{position:relative;width:100%;height:100%;z-index:1}
 
-    canvas,video, .css3d{
-      position:absolute;top:0;left:0;width:100%;height:100%
+    canvas,video,.css3d{position:absolute;top:0;left:0;width:100%;height:100%}
+
+    /* El vídeo es solo fuente para MediaPipe, nunca visible */
+    video{
+      width:0;height:0;           /* ocupa cero pantalla */
+      opacity:0 !important;
+      pointer-events:none;
+      z-index:-1;
     }
-    video{object-fit:cover;opacity:0;pointer-events:none}
 
     /* ---------- Escritorio ---------- */
     .icon,.window{
-      user-select:none;
-      border-radius:8px;
-      box-shadow:var(--shadow);
-      background:var(--window);
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      transition:transform .2s;
+      user-select:none;border-radius:8px;
+      box-shadow:var(--shadow);background:var(--window);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      cursor:pointer;transition:transform .2s;
     }
     .icon{width:120px;height:120px}
     .icon:hover{transform:scale(1.05)}
@@ -60,7 +61,6 @@
       cursor:move;font-weight:600;font-size:.95rem
     }
     .content{flex:1;padding:8px;background:#f7f7f7;overflow:auto}
-
     .close-btn{
       border:none;border-radius:50%;width:20px;height:20px;
       background:#e81123;color:#fff;font-weight:bolder;cursor:pointer
@@ -69,7 +69,7 @@
     textarea,pre,input,iframe{width:100%;height:100%;border:none;background:#fff}
     textarea{resize:none;padding:8px;font-family:inherit}
 
-    /* ---------- Overlay inicio ---------- */
+    /* ---------- Overlay de inicio ---------- */
     #overlay{
       position:fixed;top:0;left:0;width:100%;height:100%;
       background:rgba(0,0,0,.8);color:#fff;z-index:3;
@@ -83,6 +83,7 @@
 <body>
   <div id="container"></div>
   <video id="camera"></video>
+
   <!-- ---------- Ventana de inicio ---------- -->
   <div id="overlay">
     <p>Permite la cámara para usar gestos de mano.</p>
@@ -92,23 +93,21 @@
   </div>
 
   <!-- =======================  LIBRERÍAS  ======================= -->
-  <!-- 1️⃣ ANTES del primer <script type="module" …> -->
+  <!-- Three.js r178 (ES Modules) -->
   <script type="importmap">
   {
     "imports": {
-      "three"          : "./vendor/three/three.module.js",
-      "three/addons/"  : "./vendor/three/"
+      "three":            "./vendor/three/three.module.js",
+      "three/addons/":    "./vendor/three/"
     }
   }
   </script>
 
-  <!-- MediaPipe Hands v0.10.x  -->
+  <!-- MediaPipe Hands v0.10.x -->
   <script src="./vendor/mediapipe/hands.min.js"></script>
   <script src="./vendor/mediapipe/drawing_utils.min.js"></script>
 
   <!-- =======================  APP  ======================= -->
-  <!-- Main application script -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
-
