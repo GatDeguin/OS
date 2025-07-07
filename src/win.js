@@ -17,6 +17,7 @@ export class Win {
     this.icon = icon;
     this.state = 'normal';
     this.prev  = null;
+    this.prevState = null;
     this.taskBtn = document.createElement('div');
     this.taskBtn.className = 'task-icon';
     this.taskBtn.innerHTML = `<img src="${icon}">`;
@@ -175,6 +176,7 @@ export class Win {
 
   minimize() {
     if (this.state === 'minimized') return;
+    this.prevState = this.state;
     this.state = 'minimized';
     this.root.style.display = 'none';
     if (focusedWin === this) focusedWin = null;
@@ -184,7 +186,8 @@ export class Win {
   restore() {
     if (this.state !== 'minimized') return;
     this.root.style.display = '';
-    this.state = 'normal';
+    this.state = this.prevState || 'normal';
+    this.prevState = null;
     this.focus();
   }
 
