@@ -14,6 +14,7 @@ const overlayStartBtn  = document.getElementById('start-btn');
 const cameraSelect = document.getElementById('camera-select');
 const startButton = document.getElementById('start-button');
 const startMenu   = document.getElementById('start-menu');
+const taskbarWins = document.getElementById('taskbar-windows');
 const size      = { w: innerWidth, h: innerHeight };
 
 async function populateCameraOptions() {
@@ -52,7 +53,7 @@ rendererGL.domElement.style.zIndex = '0';
 rendererCSS.domElement.style.zIndex = '10';
 rendererCSS.domElement.className    = 'css3d';
 
-initWindowSystem(sceneCSS);
+initWindowSystem(sceneCSS, taskbarWins);
 setupHands({ container, size, camera, sceneCSS, video });
 
 /* ---------- Fondo degradado ---------- */
