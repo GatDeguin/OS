@@ -133,6 +133,15 @@
     .task-icon{width:30px;height:30px;margin-left:6px;cursor:pointer}
     .task-icon img{width:100%;height:100%;border-radius:4px}
 
+    /* ---------- Cursor de mano ---------- */
+    #hand-cursor{
+      position:absolute;width:20px;height:20px;border:2px solid red;
+      border-radius:50%;pointer-events:none;z-index:4;
+      margin:-10px 0 0 -10px;display:none;
+    }
+    body.camera-active #hand-cursor{display:block}
+    body.camera-active{cursor:none}
+
     @keyframes fadeIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
     @keyframes introUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
     .intro{animation:introUp .4s forwards}
@@ -142,6 +151,7 @@
 <body>
   <div id="container"></div>
   <video id="camera"></video>
+  <div id="hand-cursor"></div>
 
   <!-- ---------- Ventana de inicio ---------- -->
   <div id="overlay">

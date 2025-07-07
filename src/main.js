@@ -18,6 +18,7 @@ const startMenu   = document.getElementById('start-menu');
 const startSearch = document.getElementById('start-search');
 const taskbarWins = document.getElementById('taskbar-windows');
 const toastContainer = document.getElementById('toast-container');
+const handCursor = document.getElementById('hand-cursor');
 const size      = { w: innerWidth, h: innerHeight };
 
 /* ---------- Preferencias ---------- */
@@ -188,7 +189,7 @@ rendererCSS.domElement.style.zIndex = '10';
 rendererCSS.domElement.className    = 'css3d';
 
 initWindowSystem(sceneCSS, taskbarWins);
-setupHands({ container, size, camera, sceneCSS, video });
+setupHands({ container, size, camera, sceneCSS, video, cursor: handCursor });
 
 /* ---------- Fondo degradado ---------- */
 (() => {
@@ -395,6 +396,7 @@ document.addEventListener('click', e => {
 function startWithoutCamera(msg) {
   msgEl.textContent = msg;
   overlay.classList.remove('hidden');
+  document.body.classList.remove('camera-active');
   setTimeout(() => { overlay.classList.add('hidden'); runIntro(); }, 2000);
 }
 
@@ -414,6 +416,7 @@ function startCamera(deviceId) {
       video.style.opacity = '0';
       video.style.zIndex  = '-1';
       overlay.classList.add('hidden');
+      document.body.classList.add('camera-active');
       runIntro();
     })
     .catch(() => {
