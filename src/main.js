@@ -234,6 +234,7 @@ Object.assign(controls, {
 /* ---------- Íconos ---------- */
 const iconObjs = [];
 const savedIconPos = JSON.parse(localStorage.getItem('iconPositions') || '{}');
+let orientation = size.w >= size.h ? 'landscape' : 'portrait';
 
 function saveIconPositions() {
   const data = {};
@@ -247,14 +248,19 @@ function saveIconPositions() {
 }
 
 function layoutIcons() {
-  const cols = Math.max(1, Math.floor(size.w / 200));
+  const spacing = 160;
+  const colsBase = orientation === 'portrait' ? 180 : 200;
+  const cols = Math.max(1, Math.floor(size.w / colsBase));
+  const rows = Math.ceil(iconObjs.length / cols);
+  const startX = -((cols - 1) * spacing) / 2;
+  const startY = ((rows - 1) * spacing) / 2;
   let j = 0;
   iconObjs.forEach(obj => {
     if (obj.userData.custom) return;
     const row = Math.floor(j / cols);
     const col = j % cols;
-    const x = (col - (cols - 1) / 2) * 160;
-    const y = 120 - row * 160;
+    const x = startX + col * spacing;
+    const y = startY - row * spacing;
     obj.userData.basePos.set(x, y, 0);
     obj.position.copy(obj.userData.basePos);
     j++;
@@ -267,9 +273,16 @@ function enableIconDrag(obj) {
 
   const onMove = e => {
     const c = e.touches ? e.touches[0] : e;
+    const newX = start.pos.x + (c.clientX - start.x);
+    const newY = start.pos.y - (c.clientY - start.y);
+    const halfH = camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const halfW = halfH * camera.aspect;
+    const pxToWorld = halfH * 2 / size.h;
+    const limitX = halfW - 60 * pxToWorld;
+    const limitY = halfH - 60 * pxToWorld;
     obj.userData.basePos.set(
-      start.pos.x + (c.clientX - start.x),
-      start.pos.y - (c.clientY - start.y),
+      THREE.MathUtils.clamp(newX, -limitX, limitX),
+      THREE.MathUtils.clamp(newY, -limitY, limitY),
       0
     );
     e.preventDefault();
@@ -413,6 +426,7 @@ overlayStartBtn.onclick = () => startCamera(cameraSelect.value);
 /* ---------- Resize ---------- */
 addEventListener('resize', () => {
   size.w = innerWidth; size.h = innerHeight;
+  orientation = size.w >= size.h ? 'landscape' : 'portrait';
   camera.aspect = size.w / size.h;
   camera.updateProjectionMatrix();
   [rendererGL, rendererCSS].forEach(r => r.setSize(size.w, size.h));
