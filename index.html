@@ -56,6 +56,9 @@
     .icon:hover::after{opacity:.6}
     .icon img{width:64px;height:64px;margin-top:4px}
     .icon span{margin-top:6px;font-size:.9rem;color:var(--text)}
+    .icon.touching{transform:scale(0.9)!important}
+    .icon.squish{animation:squish .2s}
+    @keyframes squish{from{transform:scale(1)}50%{transform:scale(.85,1.15)}to{transform:scale(1)}}
 
     /* ---------- Ventanas ---------- */
     .window{
@@ -187,7 +190,8 @@
   {
     "imports": {
       "three":            "./vendor/three/three.module.js",
-      "three/addons/":    "./vendor/three/"
+      "three/addons/":    "./vendor/three/",
+      "cannon-es":        "./vendor/cannon-es/cannon-es.js"
     }
   }
   </script>
