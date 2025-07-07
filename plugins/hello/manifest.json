@@ -1,0 +1,6 @@
+{
+  "id": "hello",
+  "name": "Hola",
+  "icon": "https://img.icons8.com/fluency/96/speech-bubble-with-dots.png",
+  "main": "hello.js"
+}

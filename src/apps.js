@@ -1,4 +1,7 @@
+import { runPluginApp } from './pluginApi.js';
+
 export function createApp(id, cont, win) {
+  if (runPluginApp(id, cont, win)) return;
   switch (id) {
     case 'term': {
       const pre = document.createElement('pre');
