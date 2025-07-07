@@ -55,7 +55,8 @@ const APPS = [
   {id:'term', name:'Terminal', icon:'https://img.icons8.com/fluency/96/console.png'},
   {id:'edit', name:'Editor',   icon:'https://img.icons8.com/fluency/96/notepad.png'},
   {id:'web',  name:'Web',      icon:'https://img.icons8.com/fluency/96/internet.png'},
-  {id:'clock',name:'Reloj',    icon:'https://img.icons8.com/fluency/96/alarm.png'}
+  {id:'clock',name:'Reloj',    icon:'https://img.icons8.com/fluency/96/alarm.png'},
+  {id:'calc', name:'Calculadora', icon:'https://img.icons8.com/fluency/96/calculator.png'}
 ];
 
 APPS.forEach((app,i)=>{
@@ -125,6 +126,33 @@ class Win{
         update();
         this.interval=setInterval(update,1000);
         cont.appendChild(clock);
+      }break;
+      case 'calc':{
+        const wrap=document.createElement('div');
+        wrap.style.display='flex';
+        wrap.style.flexDirection='column';
+        wrap.style.height='100%';
+
+        const inp=document.createElement('input');
+        inp.placeholder='Ej. 2+2*3';
+        inp.style.marginBottom='6px';
+
+        const res=document.createElement('pre');
+        res.style.flex='1';
+        res.textContent='Resultado: 0';
+
+        inp.addEventListener('keydown',e=>{
+          if(e.key==='Enter'){
+            try{
+              res.textContent=`Resultado: ${new Function('return '+inp.value)()}`;
+            }catch{
+              res.textContent='Error';
+            }
+          }
+        });
+
+        wrap.append(inp,res);
+        cont.appendChild(wrap);
       }break;
     }
 

@@ -3,7 +3,8 @@
 A minimal 3D desktop demo using Three.js and MediaPipe.
 
 The environment includes several simple built‑in applications such as a
-terminal emulator, text editor, web browser and a live clock.
+terminal emulator, text editor, web browser, live clock and a basic
+calculator.
 
 ## Requirements
 - Modern browser with WebGL and camera access
