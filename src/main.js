@@ -114,16 +114,66 @@ const APPS = [
 ];
 
 const iconObjs = [];
+const savedIconPos = JSON.parse(localStorage.getItem('iconPositions') || '{}');
+
+function saveIconPositions() {
+  const data = {};
+  iconObjs.forEach(obj => {
+    data[obj.userData.id] = {
+      x: obj.userData.basePos.x,
+      y: obj.userData.basePos.y
+    };
+  });
+  localStorage.setItem('iconPositions', JSON.stringify(data));
+}
 
 function layoutIcons() {
   const cols = Math.max(1, Math.floor(size.w / 200));
-  iconObjs.forEach((obj, i) => {
-    const row = Math.floor(i / cols);
-    const col = i % cols;
+  let j = 0;
+  iconObjs.forEach(obj => {
+    if (obj.userData.custom) return;
+    const row = Math.floor(j / cols);
+    const col = j % cols;
     const x = (col - (cols - 1) / 2) * 160;
     const y = 120 - row * 160;
     obj.userData.basePos.set(x, y, 0);
     obj.position.copy(obj.userData.basePos);
+    j++;
+  });
+}
+
+function enableIconDrag(obj) {
+  const el = obj.element;
+  let start = { x: 0, y: 0, pos: new THREE.Vector3() };
+
+  const onMove = e => {
+    const c = e.touches ? e.touches[0] : e;
+    obj.userData.basePos.set(
+      start.pos.x + (c.clientX - start.x),
+      start.pos.y - (c.clientY - start.y),
+      0
+    );
+    e.preventDefault();
+  };
+
+  const endDrag = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('touchmove', onMove);
+    obj.userData.custom = true;
+    saveIconPositions();
+  };
+
+  el.addEventListener('mousedown', e => {
+    start = { x: e.clientX, y: e.clientY, pos: obj.userData.basePos.clone() };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', endDrag, { once: true });
+  });
+
+  el.addEventListener('touchstart', e => {
+    const c = e.touches[0];
+    start = { x: c.clientX, y: c.clientY, pos: obj.userData.basePos.clone() };
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', endDrag, { once: true });
   });
 }
 
@@ -132,10 +182,20 @@ APPS.forEach((app, i) => {
   el.className = 'icon';
   el.innerHTML = `<img src="${app.icon}"><span>${app.name}</span>`;
   const obj = new CSS3DObject(el);
-  obj.userData = { basePos: new THREE.Vector3() };
+  obj.userData = {
+    id: app.id,
+    basePos: new THREE.Vector3(),
+    custom: false
+  };
   iconObjs.push(obj);
   sceneCSS.add(obj);
+  if (savedIconPos[app.id]) {
+    obj.userData.basePos.set(savedIconPos[app.id].x, savedIconPos[app.id].y, 0);
+    obj.position.copy(obj.userData.basePos);
+    obj.userData.custom = true;
+  }
   el.addEventListener('click', () => spawnWindow(app));
+  enableIconDrag(obj);
 });
 layoutIcons();
 
