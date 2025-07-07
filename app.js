@@ -8,7 +8,9 @@ const container = document.getElementById('container');
 const video     = document.getElementById('camera');
 const overlay   = document.getElementById('overlay');
 const msgEl     = document.getElementById('overlay-msg');
-const startBtn  = document.getElementById('start-btn');
+const overlayStartBtn  = document.getElementById('start-btn');
+const startButton = document.getElementById('start-button');
+const startMenu   = document.getElementById('start-menu');
 const size      = { w: innerWidth, h: innerHeight };
 
 /* ---------- ESCENA ---------- */
@@ -114,6 +116,21 @@ APPS.forEach((app, i) => {
   el.addEventListener('click', () => spawnWindow(app));
 });
 layoutIcons();
+
+/* ---------- Menú Inicio ---------- */
+APPS.forEach(app => {
+  const item = document.createElement('div');
+  item.className = 'start-item';
+  item.innerHTML = `<img src="${app.icon}"><span>${app.name}</span>`;
+  item.onclick = () => { startMenu.classList.remove('show'); spawnWindow(app); };
+  startMenu.appendChild(item);
+});
+startButton.onclick = () => startMenu.classList.toggle('show');
+document.addEventListener('click', e => {
+  if (!startMenu.contains(e.target) && e.target !== startButton) {
+    startMenu.classList.remove('show');
+  }
+});
 
 /* ---------- Clase Ventana ---------- */
 class Win {
@@ -328,7 +345,7 @@ function startCamera() {
     });
 }
 
-startBtn.onclick = () => startCamera();
+overlayStartBtn.onclick = () => startCamera();
 
 video.onplaying = function loop() {
   hands.send({ image: video });
