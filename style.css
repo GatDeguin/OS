@@ -38,3 +38,18 @@
   color:var(--text);
   width:calc(100% - 16px);
 }
+
+#hand-cursor{
+  position:absolute;
+  width:20px;
+  height:20px;
+  border:2px solid #fff;
+  border-radius:50%;
+  pointer-events:none;
+  z-index:3;
+  transform:translate(-50%, -50%);
+  transition:background .1s;
+}
+#hand-cursor.active{
+  background:rgba(255,255,255,.5);
+}
