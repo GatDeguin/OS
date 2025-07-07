@@ -56,17 +56,29 @@ function applyTheme(t) {
 }
 
 let wallCanvas, wallTex;
-function applyWallpaper(w) {
-  setVars(WALLPAPERS[w] || WALLPAPERS.default);
-  if (!wallCanvas || !wallTex) return;
-  const ctx = wallCanvas.getContext('2d');
-  const grad = ctx.createLinearGradient(0,0,0,1024);
-  const styles = getComputedStyle(document.documentElement);
-  grad.addColorStop(0, styles.getPropertyValue('--bg-grad-1').trim());
-  grad.addColorStop(1, styles.getPropertyValue('--bg-grad-2').trim());
-  ctx.fillStyle = grad;
+function redrawWallpaper(){
+  if(!wallCanvas||!wallTex) return;
+  const ctx=wallCanvas.getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,1024);
+  const styles=getComputedStyle(document.documentElement);
+  grad.addColorStop(0,styles.getPropertyValue('--bg-grad-1').trim());
+  grad.addColorStop(1,styles.getPropertyValue('--bg-grad-2').trim());
+  ctx.fillStyle=grad;
   ctx.fillRect(0,0,1024,1024);
-  wallTex.needsUpdate = true;
+  wallTex.needsUpdate=true;
+}
+function applyWallpaper(w){
+  setVars(WALLPAPERS[w]||WALLPAPERS.default);
+  redrawWallpaper();
+}
+
+let gradStart=performance.now();
+function animateGradient(){
+  const p=((performance.now()-gradStart)/30000)%1;
+  const h1=p*360;
+  const h2=(h1+60)%360;
+  setVars({'--bg-grad-1':`hsl(${h1},60%,50%)`,'--bg-grad-2':`hsl(${h2},60%,50%)`});
+  redrawWallpaper();
 }
 
 function applyContrast(c) {
@@ -306,6 +318,18 @@ APPS.forEach((app, i) => {
 });
 layoutIcons();
 
+function runIntro(){
+  iconObjs.forEach((obj,i)=>{
+    const el=obj.element;
+    el.classList.add('intro');
+    el.style.animationDelay=`${i*0.1}s`;
+    el.addEventListener('animationend',()=>{el.classList.remove('intro');el.style.animationDelay='';},{once:true});
+  });
+  const tb=document.getElementById('taskbar');
+  tb.classList.add('intro');
+  tb.addEventListener('animationend',()=>tb.classList.remove('intro'),{once:true});
+}
+
 /* ---------- Menú Inicio ---------- */
 const startItems = [];
 APPS.forEach(app => {
@@ -358,7 +382,7 @@ document.addEventListener('click', e => {
 function startWithoutCamera(msg) {
   msgEl.textContent = msg;
   overlay.classList.remove('hidden');
-  setTimeout(() => overlay.classList.add('hidden'), 2000);
+  setTimeout(() => { overlay.classList.add('hidden'); runIntro(); }, 2000);
 }
 
 function startCamera(deviceId) {
@@ -377,6 +401,7 @@ function startCamera(deviceId) {
       video.style.opacity = '0';
       video.style.zIndex  = '-1';
       overlay.classList.add('hidden');
+      runIntro();
     })
     .catch(() => {
       startWithoutCamera('No se detect\u00f3 la c\u00e1mara. Usa mouse o t\u00e1ctil.');
@@ -398,6 +423,7 @@ addEventListener('resize', () => {
 (function animate() {
   requestAnimationFrame(animate);
   controls.update();
+  animateGradient();
   const t = performance.now() / 1000;
   iconObjs.forEach((obj, i) => {
     obj.position.y = obj.userData.basePos.y + Math.sin(t + i) * 5;
