@@ -280,6 +280,7 @@ Object.assign(controls, {
 const iconObjs = [];
 const savedIconPos = JSON.parse(localStorage.getItem('iconPositions') || '{}');
 let orientation = size.w >= size.h ? 'landscape' : 'portrait';
+const ICON_ANIM_SPEED = 0.1;
 
 function saveIconPositions() {
   const data = {};
@@ -290,7 +291,7 @@ function saveIconPositions() {
   localStorage.setItem('iconPositions', JSON.stringify(data));
 }
 
-function layoutIcons() {
+function layoutIcons(instantly = false) {
   const spacing = 160;
   const colsBase = orientation === 'portrait' ? 180 : 200;
   const cols = Math.max(1, Math.floor(size.w / colsBase));
@@ -305,10 +306,17 @@ function layoutIcons() {
     const x = startX + col * spacing;
     const y = startY - row * spacing;
     obj.userData.basePos.set(x, y, 0);
-    obj.position.copy(obj.userData.basePos);
-    if(obj.userData.body){
-      obj.userData.body.position.set(x, y, 0);
-      obj.userData.body.velocity.set(0,0,0);
+    if (instantly) {
+      obj.position.copy(obj.userData.basePos);
+      if (obj.userData.body) {
+        obj.userData.body.position.set(x, y, 0);
+        obj.userData.body.velocity.set(0, 0, 0);
+      }
+    } else {
+      obj.userData.animTarget = new THREE.Vector3(x, y, 0);
+      if (obj.userData.body) {
+        obj.userData.body.velocity.set(0, 0, 0);
+      }
     }
     j++;
   });
@@ -391,7 +399,7 @@ APPS.forEach((app, i) => {
   el.addEventListener('click', () => spawnWindow(app));
   enableIconDrag(obj);
 });
-layoutIcons();
+layoutIcons(true);
 
 function runIntro(){
   iconObjs.forEach((obj,i)=>{
@@ -512,6 +520,15 @@ addEventListener('resize', () => {
   const t = performance.now() / 1000;
   iconObjs.forEach((obj, i) => {
     const body = obj.userData.body;
+    if (obj.userData.animTarget) {
+      const cur = new THREE.Vector3(body.position.x, body.position.y, body.position.z);
+      cur.lerp(obj.userData.animTarget, ICON_ANIM_SPEED);
+      body.position.set(cur.x, cur.y, cur.z);
+      if (cur.distanceTo(obj.userData.animTarget) < 0.5) {
+        body.position.copy(obj.userData.animTarget);
+        obj.userData.animTarget = null;
+      }
+    }
     obj.userData.basePos.copy(body.position);
     obj.position.set(body.position.x, body.position.y + Math.sin(t + i) * 5, body.position.z);
     obj.quaternion.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
