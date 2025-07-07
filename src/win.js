@@ -17,7 +17,14 @@ export class Win {
     this.icon = icon;
     this.state = 'normal';
     this.prev  = null;
-    this.taskIcon = null;
+    this.taskBtn = document.createElement('div');
+    this.taskBtn.className = 'task-icon';
+    this.taskBtn.innerHTML = `<img src="${icon}">`;
+    this.taskBtn.onclick = () => {
+      if (this.state === 'minimized') this.restore();
+      else this.focus();
+    };
+    taskbar.appendChild(this.taskBtn);
     this.root = document.createElement('div');
     this.root.className = 'window';
     this.root.id = `win-${id}`;
@@ -51,7 +58,7 @@ export class Win {
     close.onmousedown = e => e.stopPropagation();
     close.onclick = () => {
       if (this.interval) clearInterval(this.interval);
-      if (this.taskIcon) this.taskIcon.remove();
+      if (this.taskBtn) this.taskBtn.remove();
       this.root.classList.remove('active');
       if (focusedWin === this) focusedWin = null;
       this.root.addEventListener('transitionend', () => sceneCSS.remove(this.obj), { once: true });
@@ -171,18 +178,12 @@ export class Win {
     this.state = 'minimized';
     this.root.style.display = 'none';
     if (focusedWin === this) focusedWin = null;
-    this.taskIcon = document.createElement('div');
-    this.taskIcon.className = 'task-icon';
-    this.taskIcon.innerHTML = `<img src="${this.icon}">`;
-    this.taskIcon.onclick = () => this.restore();
-    taskbar.appendChild(this.taskIcon);
+    // el botón de la barra ya existe; solo ocultamos la ventana
   }
 
   restore() {
     if (this.state !== 'minimized') return;
     this.root.style.display = '';
-    if (this.taskIcon) this.taskIcon.remove();
-    this.taskIcon = null;
     this.state = 'normal';
     this.focus();
   }
