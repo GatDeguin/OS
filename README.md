@@ -28,6 +28,18 @@ tool with `npm` and run its build command (`webpack`, `vite build`, etc.) to
 generate your own bundle.  Ensure the local vendor paths in `index.html` or your
 bundler configuration are updated accordingly.
 
+When using ES modules, the import map in `index.html` maps
+`three/addons/` to the local `vendor/three` directory. Import
+Three.js addons directly via this path, e.g.:
+
+```javascript
+import { OrbitControls } from 'three/addons/OrbitControls.js';
+```
+
+Avoid paths containing intermediate `controls/` or `renderers/`
+subdirectories, as those do not exist and will lead to 404
+errors when loading the modules.
+
 See [CONTRIBUTING](CONTRIBUTING.md) for details on testing and submitting
 changes.
 
