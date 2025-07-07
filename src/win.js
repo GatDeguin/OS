@@ -49,18 +49,39 @@ export class Win {
 
   #enableDrag(bar) {
     let start = { x: 0, y: 0, pos: new THREE.Vector3() };
+
     const onMove = e => {
+      const c = e.touches ? e.touches[0] : e;
       this.obj.position.set(
-        start.pos.x + (e.clientX - start.x),
-        start.pos.y - (e.clientY - start.y),
+        start.pos.x + (c.clientX - start.x),
+        start.pos.y - (c.clientY - start.y),
         start.pos.z
       );
     };
-    bar.onmousedown = e => {
-      start = { x: e.clientX, y: e.clientY, pos: this.obj.position.clone() };
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', () => document.removeEventListener('mousemove', onMove), { once: true });
+
+    const startDrag = e => {
+      const c = e.touches ? e.touches[0] : e;
+      start = { x: c.clientX, y: c.clientY, pos: this.obj.position.clone() };
     };
+
+    bar.onmousedown = e => {
+      startDrag(e);
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', () =>
+        document.removeEventListener('mousemove', onMove),
+        { once: true }
+      );
+    };
+
+    bar.addEventListener('touchstart', e => {
+      startDrag(e);
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener(
+        'touchend',
+        () => document.removeEventListener('touchmove', onMove),
+        { once: true }
+      );
+    });
   }
 }
 
