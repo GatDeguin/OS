@@ -15,6 +15,7 @@ const cameraSelect = document.getElementById('camera-select');
 const startButton = document.getElementById('start-button');
 const startMenu   = document.getElementById('start-menu');
 const taskbarWins = document.getElementById('taskbar-windows');
+const toastContainer = document.getElementById('toast-container');
 const size      = { w: innerWidth, h: innerHeight };
 
 /* ---------- Preferencias ---------- */
@@ -123,6 +124,18 @@ window.applyTheme = applyTheme;
 window.applyWallpaper = applyWallpaper;
 window.applyLang = applyLang;
 window.applyContrast = applyContrast;
+
+function showToast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  el.addEventListener('animationend', e => {
+    if (e.animationName === 'toast-out') el.remove();
+  });
+  toastContainer.appendChild(el);
+}
+
+window.showToast = showToast;
 
 async function populateCameraOptions() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;

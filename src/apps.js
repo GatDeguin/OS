@@ -61,6 +61,7 @@ export function createApp(id, cont, win) {
         a.download = 'texto.txt';
         a.click();
         URL.revokeObjectURL(a.href);
+        if (window.showToast) window.showToast('Archivo guardado');
       };
       wrap.append(ta, save);
       cont.appendChild(wrap);
@@ -115,7 +116,10 @@ export function createApp(id, cont, win) {
         if (e.key === 'Enter') {
           let out;
           try { out = new Function('return ' + inp.value)(); }
-          catch { out = 'Error'; }
+          catch {
+            out = 'Error';
+            if (window.showToast) window.showToast('Expresi\u00f3n inv\u00e1lida');
+          }
           res.textContent += `${inp.value} = ${out}\n`;
           inp.value = '';
           res.scrollTop = res.scrollHeight;
