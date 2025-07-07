@@ -108,6 +108,21 @@
       margin-top:10px;padding:6px;font-size:1rem;
     }
 
+    /* ---------- Splash screen ---------- */
+    #splash{
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      background:radial-gradient(circle at center,rgba(0,0,0,.7),#000);
+      color:#fff;z-index:4;overflow:hidden;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      transition:opacity .6s;
+    }
+    #splash.hidden{opacity:0;pointer-events:none}
+    #splash canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+    #splash .title{font-size:2rem;font-weight:600;z-index:1;animation:fadeUp 1s ease-out}
+    #splash .loader{width:60px;height:60px;border-radius:50%;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin 1s linear infinite;z-index:1;margin-top:20px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
     /* ---------- Barra de tareas ---------- */
     #taskbar{
       position:fixed;bottom:0;left:0;width:100%;height:40px;
@@ -140,6 +155,11 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div id="splash">
+    <canvas></canvas>
+    <div class="title">OS 3D</div>
+    <div class="loader"></div>
+  </div>
   <div id="container"></div>
   <video id="camera"></video>
 
@@ -178,6 +198,7 @@
   <script src="./vendor/mediapipe/drawing_utils.min.js"></script>
 
   <!-- =======================  APP  ======================= -->
+  <script type="module" src="src/splash.js"></script>
   <script type="module" src="src/app.js"></script>
 </body>
 </html>
