@@ -42,7 +42,7 @@
       user-select:none;border-radius:8px;
       box-shadow:var(--shadow);background:var(--window);
       display:flex;flex-direction:column;align-items:center;justify-content:center;
-      cursor:pointer;transition:transform .2s;
+      cursor:pointer;transition:transform .2s,opacity .3s;
     }
     .icon{width:120px;height:120px}
     .icon:hover{transform:scale(1.05)}
@@ -51,7 +51,7 @@
 
     /* ---------- Ventanas ---------- */
     .window{
-      width:380px;height:260px;opacity:0;transform:scale(.85);
+      width:min(380px,90vw);height:min(260px,70vh);opacity:0;transform:scale(.85);
       transition:opacity .3s ease,transform .3s ease;
     }
     .window.active{opacity:1;transform:scale(1)}
@@ -75,9 +75,14 @@
       background:rgba(0,0,0,.8);color:#fff;z-index:3;
       display:flex;flex-direction:column;justify-content:center;
       align-items:center;text-align:center;padding:20px;
+      transition:opacity .4s;
     }
-    #overlay.hidden{display:none}
-    #overlay button{margin-top:20px;padding:10px 20px;font-size:1rem;cursor:pointer}
+    #overlay.hidden{opacity:0;pointer-events:none}
+    #overlay button{
+      margin-top:20px;padding:10px 20px;font-size:1rem;cursor:pointer;
+      border:none;border-radius:4px;background:#fff;color:#000;
+    }
+    #overlay button:hover{background:#eee}
   </style>
 </head>
 <body>

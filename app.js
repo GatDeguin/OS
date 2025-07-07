@@ -53,6 +53,20 @@ rendererCSS.domElement.className    = 'css3d';
   sceneGL.add(quad);
 })();
 
+/* ---------- Partículas ---------- */
+const starGeo = new THREE.BufferGeometry();
+const starCount = 200;
+const starPos = new Float32Array(starCount * 3);
+for (let i = 0; i < starCount; i++) {
+  starPos[i * 3]     = (Math.random() - 0.5) * 3000;
+  starPos[i * 3 + 1] = (Math.random() - 0.5) * 3000;
+  starPos[i * 3 + 2] = (Math.random() - 0.5) * 3000;
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false });
+const stars = new THREE.Points(starGeo, starMat);
+sceneGL.add(stars);
+
 /* ---------- Controles ---------- */
 const controls = new OrbitControls(camera, rendererCSS.domElement);
 Object.assign(controls, {
@@ -75,21 +89,37 @@ const APPS = [
   { id: 'calc',  name: 'Calculadora',  icon: 'https://img.icons8.com/fluency/96/calculator.png' }
 ];
 
+const iconObjs = [];
+
+function layoutIcons() {
+  const cols = Math.max(1, Math.floor(size.w / 200));
+  iconObjs.forEach((obj, i) => {
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const x = (col - (cols - 1) / 2) * 160;
+    const y = 120 - row * 160;
+    obj.userData.basePos.set(x, y, 0);
+    obj.position.copy(obj.userData.basePos);
+  });
+}
+
 APPS.forEach((app, i) => {
   const el = document.createElement('div');
   el.className = 'icon';
   el.innerHTML = `<img src="${app.icon}"><span>${app.name}</span>`;
   const obj = new CSS3DObject(el);
-  obj.position.set((i - (APPS.length - 1) / 2) * 160, 120, 0);
+  obj.userData = { basePos: new THREE.Vector3() };
+  iconObjs.push(obj);
   sceneCSS.add(obj);
   el.addEventListener('click', () => spawnWindow(app));
 });
+layoutIcons();
 
 /* ---------- Clase Ventana ---------- */
 class Win {
   constructor({ id, name }) {
     this.root = document.createElement('div');
-    this.root.className = 'window active';
+    this.root.className = 'window';
     this.root.id = `win-${id}`;
 
     /* Título */
@@ -102,7 +132,8 @@ class Win {
     close.textContent = '×';
     close.onclick = () => {
       if (this.interval) clearInterval(this.interval);
-      sceneCSS.remove(this.obj);
+      this.root.classList.remove('active');
+      this.root.addEventListener('transitionend', () => sceneCSS.remove(this.obj), { once: true });
     };
     title.appendChild(close);
     this.root.appendChild(title);
@@ -179,6 +210,7 @@ class Win {
     this.obj = new CSS3DObject(this.root);
     this.obj.position.set(0, 0, 120);
     sceneCSS.add(this.obj);
+    requestAnimationFrame(() => this.root.classList.add('active'));
 
     /* Drag */
     this.#enableDrag(title);
@@ -309,12 +341,18 @@ addEventListener('resize', () => {
   camera.aspect = size.w / size.h;
   camera.updateProjectionMatrix();
   [rendererGL, rendererCSS].forEach(r => r.setSize(size.w, size.h));
+  layoutIcons();
 });
 
 /* ---------- Bucle ---------- */
 (function animate() {
   requestAnimationFrame(animate);
   controls.update();
+  const t = performance.now() / 1000;
+  iconObjs.forEach((obj, i) => {
+    obj.position.y = obj.userData.basePos.y + Math.sin(t + i) * 5;
+  });
+  stars.rotation.y += 0.0005;
   rendererGL.render(sceneGL, camera);
   rendererCSS.render(sceneCSS, camera);
 })();
