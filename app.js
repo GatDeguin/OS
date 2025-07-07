@@ -14,32 +14,30 @@ const size      = { w: innerWidth, h: innerHeight };
 /* ---------- ESCENA ---------- */
 const sceneGL  = new THREE.Scene();
 const sceneCSS = new THREE.Scene();
-
-const camera = new THREE.PerspectiveCamera(50, size.w / size.h, 1, 2000);
+const camera   = new THREE.PerspectiveCamera(50, size.w / size.h, 1, 2000);
 camera.position.set(0, 0, 650);
 
-/* Renderizador WebGL + CSS3D */
+/* Renderizadores */
 const rendererGL  = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 const rendererCSS = new CSS3DRenderer();
 
-/* Configuración de tamaño y orden de capas */
 [rendererGL, rendererCSS].forEach(r => {
   r.setSize(size.w, size.h);
   container.appendChild(r.domElement);
 });
-rendererGL.setClearColor(0x000000, 0);           // fondo transparente
-rendererGL.domElement.style.zIndex = '0';        // WebGL detrás
-rendererCSS.domElement.className   = 'css3d';
-rendererCSS.domElement.style.zIndex = '10';      // CSS3D delante
 
-/* ---------- Fondo degradado (CanvasTexture en un plano) ---------- */
+/* Orden de capas */
+rendererGL.setClearColor(0x000000, 0);      // WebGL transparente
+rendererGL.domElement.style.zIndex = '0';
+rendererCSS.domElement.style.zIndex = '10';
+rendererCSS.domElement.className    = 'css3d';
+
+/* ---------- Fondo degradado ---------- */
 (() => {
-  const c   = document.createElement('canvas');
+  const c = document.createElement('canvas');
   c.width = c.height = 1024;
   const ctx = c.getContext('2d');
-
-  /* Gradiente desde variables CSS */
-  const grad  = ctx.createLinearGradient(0, 0, 0, 1024);
+  const grad = ctx.createLinearGradient(0, 0, 0, 1024);
   const styles = getComputedStyle(document.documentElement);
   grad.addColorStop(0, styles.getPropertyValue('--bg-grad-1').trim());
   grad.addColorStop(1, styles.getPropertyValue('--bg-grad-2').trim());
@@ -51,12 +49,11 @@ rendererCSS.domElement.style.zIndex = '10';      // CSS3D delante
     new THREE.PlaneGeometry(4000, 4000),
     new THREE.MeshBasicMaterial({ map: tex, depthTest: false })
   );
-
-  quad.position.z = -500;      // ahora dentro del frustum
+  quad.position.z = -500;      // dentro del frustum
   sceneGL.add(quad);
 })();
 
-/* ---------- Controles de cámara ---------- */
+/* ---------- Controles ---------- */
 const controls = new OrbitControls(camera, rendererCSS.domElement);
 Object.assign(controls, {
   enablePan: false,
@@ -69,7 +66,7 @@ Object.assign(controls, {
   dampingFactor: 0.08
 });
 
-/* ---------- Íconos de apps ---------- */
+/* ---------- Íconos ---------- */
 const APPS = [
   { id: 'term',  name: 'Terminal',     icon: 'https://img.icons8.com/fluency/96/console.png' },
   { id: 'edit',  name: 'Editor',       icon: 'https://img.icons8.com/fluency/96/notepad.png' },
@@ -82,23 +79,20 @@ APPS.forEach((app, i) => {
   const el = document.createElement('div');
   el.className = 'icon';
   el.innerHTML = `<img src="${app.icon}"><span>${app.name}</span>`;
-
   const obj = new CSS3DObject(el);
   obj.position.set((i - (APPS.length - 1) / 2) * 160, 120, 0);
   sceneCSS.add(obj);
-
   el.addEventListener('click', () => spawnWindow(app));
 });
 
 /* ---------- Clase Ventana ---------- */
 class Win {
   constructor({ id, name }) {
-    /* --- Estructura raíz --- */
-    this.root       = document.createElement('div');
+    this.root = document.createElement('div');
     this.root.className = 'window active';
-    this.root.id    = `win-${id}`;
+    this.root.id = `win-${id}`;
 
-    /* --- Barra de título --- */
+    /* Título */
     const title = document.createElement('div');
     title.className = 'titlebar';
     title.textContent = name;
@@ -113,7 +107,7 @@ class Win {
     title.appendChild(close);
     this.root.appendChild(title);
 
-    /* --- Contenido --- */
+    /* Contenido */
     const cont = document.createElement('div');
     cont.className = 'content';
     this.root.appendChild(cont);
@@ -122,7 +116,6 @@ class Win {
       case 'term': {
         const pre = document.createElement('pre');
         pre.textContent = 'Terminal >';
-
         const inp = document.createElement('input');
         inp.placeholder = 'escribe y pulsa Enter';
         inp.onkeydown = e => {
@@ -150,10 +143,8 @@ class Win {
       case 'clock': {
         const clock = document.createElement('div');
         clock.style.cssText = 'font-size:2rem;display:flex;align-items:center;justify-content:center';
-
         const update = () => {
-          const now = new Date();
-          clock.textContent = now.toLocaleTimeString();
+          clock.textContent = new Date().toLocaleTimeString();
         };
         update();
         this.interval = setInterval(update, 1000);
@@ -163,15 +154,12 @@ class Win {
       case 'calc': {
         const wrap = document.createElement('div');
         wrap.style.cssText = 'display:flex;flex-direction:column;height:100%';
-
         const inp = document.createElement('input');
         inp.placeholder = 'Ej. 2+2*3';
         inp.style.marginBottom = '6px';
-
         const res = document.createElement('pre');
         res.style.flex = '1';
         res.textContent = 'Resultado: 0';
-
         inp.addEventListener('keydown', e => {
           if (e.key === 'Enter') {
             try {
@@ -181,25 +169,23 @@ class Win {
             }
           }
         });
-
         wrap.append(inp, res);
         cont.appendChild(wrap);
         break;
       }
     }
 
-    /* --- Objeto 3D --- */
+    /* Objeto 3D */
     this.obj = new CSS3DObject(this.root);
     this.obj.position.set(0, 0, 120);
     sceneCSS.add(this.obj);
 
-    /* --- Arrastre manual --- */
+    /* Drag */
     this.#enableDrag(title);
   }
 
   #enableDrag(bar) {
     let start = { x: 0, y: 0, pos: new THREE.Vector3() };
-
     const onMove = e => {
       this.obj.position.set(
         start.pos.x + (e.clientX - start.x),
@@ -207,15 +193,10 @@ class Win {
         start.pos.z
       );
     };
-
     bar.onmousedown = e => {
       start = { x: e.clientX, y: e.clientY, pos: this.obj.position.clone() };
       document.addEventListener('mousemove', onMove);
-      document.addEventListener(
-        'mouseup',
-        () => document.removeEventListener('mousemove', onMove),
-        { once: true }
-      );
+      document.addEventListener('mouseup', () => document.removeEventListener('mousemove', onMove), { once: true });
     };
   }
 }
@@ -227,8 +208,7 @@ function spawnWindow(app) {
 /* ---------- MediaPipe Hands ---------- */
 const ctx2 = (() => {
   const c = document.createElement('canvas');
-  c.width = size.w;
-  c.height = size.h;
+  c.width = size.w; c.height = size.h;
   c.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2';
   container.appendChild(c);
   return c.getContext('2d', { willReadFrequently: true });
@@ -260,17 +240,14 @@ hands.onResults(({ multiHandLandmarks: [lm] }) => {
   ctx2.fillStyle = 'rgba(255,0,0,.6)';
   ctx2.fill();
 
-  if (dist < 40) {                 // gesto de “pinza”
+  if (dist < 40) {                  // gesto de “pinza”
     if (!grabbing) {
       grabbing = true;
-
-      /* Raycast a iconos/ventanas CSS3D */
       const ndc = new THREE.Vector3(
         (mid.x / size.w) * 2 - 1,
         -(mid.y / size.h) * 2 + 1,
         0.5
       ).unproject(camera);
-
       const ray  = new THREE.Raycaster(
         camera.position,
         ndc.sub(camera.position).normalize()
@@ -278,7 +255,6 @@ hands.onResults(({ multiHandLandmarks: [lm] }) => {
       const hits = ray.intersectObjects(sceneCSS.children);
       target = hits[0]?.object ?? null;
     }
-
     if (target) {
       const ndc2 = new THREE.Vector3(
         (mid.x / size.w) * 2 - 1,
@@ -293,7 +269,7 @@ hands.onResults(({ multiHandLandmarks: [lm] }) => {
   }
 });
 
-/* ---------- Video / cámara ---------- */
+/* ---------- Cámara ---------- */
 function startWithoutCamera(msg) {
   msgEl.textContent = msg;
   overlay.classList.remove('hidden');
@@ -306,11 +282,13 @@ function startCamera() {
     startWithoutCamera('C\u00e1mara no disponible. Usa mouse o t\u00e1ctil.');
     return;
   }
-
   media.getUserMedia({ video: { width: 640, height: 480 } })
     .then(stream => {
       video.srcObject = stream;
       video.play();
+      /* El vídeo jamás se muestra */
+      video.style.opacity = '0';
+      video.style.zIndex  = '-1';
       overlay.classList.add('hidden');
     })
     .catch(() => {
@@ -327,14 +305,13 @@ video.onplaying = function loop() {
 
 /* ---------- Resize ---------- */
 addEventListener('resize', () => {
-  size.w = innerWidth;
-  size.h = innerHeight;
+  size.w = innerWidth; size.h = innerHeight;
   camera.aspect = size.w / size.h;
   camera.updateProjectionMatrix();
   [rendererGL, rendererCSS].forEach(r => r.setSize(size.w, size.h));
 });
 
-/* ---------- Bucle render ---------- */
+/* ---------- Bucle ---------- */
 (function animate() {
   requestAnimationFrame(animate);
   controls.update();
