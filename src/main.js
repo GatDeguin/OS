@@ -15,6 +15,7 @@ const overlayStartBtn  = document.getElementById('start-btn');
 const cameraSelect = document.getElementById('camera-select');
 const startButton = document.getElementById('start-button');
 const startMenu   = document.getElementById('start-menu');
+const startSearch = document.getElementById('start-search');
 const taskbarWins = document.getElementById('taskbar-windows');
 const toastContainer = document.getElementById('toast-container');
 const size      = { w: innerWidth, h: innerHeight };
@@ -306,20 +307,49 @@ APPS.forEach((app, i) => {
 layoutIcons();
 
 /* ---------- Menú Inicio ---------- */
+const startItems = [];
 APPS.forEach(app => {
   const item = document.createElement('div');
   item.className = 'start-item';
   item.innerHTML = `<img src="${app.icon}"><span>${app.name}</span>`;
   item.onclick = () => { startMenu.classList.remove('show'); spawnWindow(app); };
   startMenu.appendChild(item);
+  startItems.push({ el: item, app });
+});
+
+startSearch.addEventListener('input', () => {
+  const txt = startSearch.value.toLowerCase();
+  startItems.forEach(({ el, app }) => {
+    const name = app.name.toLowerCase();
+    el.style.display = name.includes(txt) ? 'flex' : 'none';
+  });
+});
+
+startSearch.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const found = startItems.find(({ el }) => el.style.display !== 'none');
+    if (found) {
+      startMenu.classList.remove('show');
+      spawnWindow(found.app);
+      startSearch.value = '';
+      startItems.forEach(({ el }) => (el.style.display = 'flex'));
+    }
+  }
 });
 applyTheme(PREFS.theme);
 applyContrast(PREFS.contrast);
 applyLang(PREFS.lang);
-startButton.onclick = () => startMenu.classList.toggle('show');
+startButton.onclick = () => {
+  startMenu.classList.toggle('show');
+  if (startMenu.classList.contains('show')) {
+    startSearch.focus();
+  }
+};
 document.addEventListener('click', e => {
   if (!startMenu.contains(e.target) && e.target !== startButton) {
     startMenu.classList.remove('show');
+    startSearch.value = '';
+    startItems.forEach(({ el }) => (el.style.display = 'flex'));
   }
 });
 
