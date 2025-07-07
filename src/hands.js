@@ -71,10 +71,10 @@ export function setupHands({ container, size, camera, sceneCSS, video }) {
     }
   });
 
-  video.onplaying = function loop() {
+  video.addEventListener('playing', function loop() {
     hands.send({ image: video });
     requestAnimationFrame(loop);
-  };
+  });
 
   return hands;
 }
