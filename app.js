@@ -194,17 +194,31 @@ hands.onResults(({multiHandLandmarks:[lm]})=>{
 });
 
 /* ---------- Video / cámara ---------- */
+function startWithoutCamera(msg){
+  msgEl.textContent = msg;
+  overlay.classList.remove('hidden');
+  setTimeout(() => overlay.classList.add('hidden'), 2000);
+}
+
 function startCamera(){
-  navigator.mediaDevices.getUserMedia({video:{width:640,height:480}})
-    .then(str=>{video.srcObject=str;video.play();})
-    .catch(err=>{
-      msgEl.textContent = 'Error al acceder a la c\u00e1mara: '+err.message;
-      overlay.classList.remove('hidden');
+  const media = navigator.mediaDevices;
+  if(!media || !media.getUserMedia){
+    startWithoutCamera('C\u00e1mara no disponible. Usa mouse o t\u00e1ctil.');
+    return;
+  }
+
+  media.getUserMedia({video:{width:640,height:480}})
+    .then(str => {
+      video.srcObject = str;
+      video.play();
+      overlay.classList.add('hidden');
+    })
+    .catch(() => {
+      startWithoutCamera('No se detect\u00f3 la c\u00e1mara. Usa mouse o t\u00e1ctil.');
     });
 }
 
 startBtn.onclick=()=>{
-  overlay.classList.add('hidden');
   startCamera();
 };
 
