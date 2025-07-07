@@ -66,11 +66,28 @@
     .close-btn:hover{filter:brightness(1.1)}
     textarea,pre,input,iframe{width:100%;height:100%;border:none;background:#fff}
     textarea{resize:none;padding:8px;font-family:inherit}
+
+    /* ---------- Overlay inicio ---------- */
+    #overlay{
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      background:rgba(0,0,0,.8);color:#fff;z-index:3;
+      display:flex;flex-direction:column;justify-content:center;
+      align-items:center;text-align:center;padding:20px;
+    }
+    #overlay.hidden{display:none}
+    #overlay button{margin-top:20px;padding:10px 20px;font-size:1rem;cursor:pointer}
   </style>
 </head>
 <body>
   <div id="container"></div>
   <video id="camera"></video>
+  <!-- ---------- Ventana de inicio ---------- -->
+  <div id="overlay">
+    <p>Se requiere conceder permiso de cámara para utilizar el demo.</p>
+    <p>Coloca la mano frente a la cámara y une índice y pulgar para interactuar.</p>
+    <p id="overlay-msg"></p>
+    <button id="start-btn">Comenzar</button>
+  </div>
 
   <!-- =======================  LIBRERÍAS  ======================= -->
   <!-- Three.js r178 (Módulos ES) -->
@@ -97,6 +114,9 @@
   /* ---------- Constantes ---------- */
   const container = document.getElementById('container');
   const video     = document.getElementById('camera');
+  const overlay   = document.getElementById('overlay');
+  const msgEl     = document.getElementById('overlay-msg');
+  const startBtn  = document.getElementById('start-btn');
   const size      = {w:innerWidth,h:innerHeight};
 
   /* ---------- ESCENA ---------- */
@@ -282,8 +302,19 @@
   });
 
   /* ---------- Video / cámara ---------- */
-  navigator.mediaDevices.getUserMedia({video:{width:640,height:480}})
-    .then(str=>{video.srcObject=str;video.play()});
+  function startCamera(){
+    navigator.mediaDevices.getUserMedia({video:{width:640,height:480}})
+      .then(str=>{video.srcObject=str;video.play();})
+      .catch(err=>{
+        msgEl.textContent = 'Error al acceder a la c\u00e1mara: '+err.message;
+        overlay.classList.remove('hidden');
+      });
+  }
+
+  startBtn.onclick=()=>{
+    overlay.classList.add('hidden');
+    startCamera();
+  };
 
   video.onplaying = function loop(){
     hands.send({image:video});
