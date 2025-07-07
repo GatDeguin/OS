@@ -1,4 +1,5 @@
 import { runPluginApp } from './pluginApi.js';
+import fs from './fs.js';
 
 export function createApp(id, cont, win) {
   if (runPluginApp(id, cont, win)) return;
@@ -13,21 +14,41 @@ export function createApp(id, cont, win) {
 
       function runCmd(cmd) {
         const [c, ...args] = cmd.split(' ');
-        switch (c) {
-          case 'help':
-            pre.textContent += '\nComandos: help, echo, date, clear';
-            break;
-          case 'echo':
-            pre.textContent += '\n' + args.join(' ');
-            break;
-          case 'date':
-            pre.textContent += '\n' + new Date().toString();
-            break;
-          case 'clear':
-            pre.textContent = 'Terminal >';
-            break;
-          default:
-            if (c) pre.textContent += `\nComando desconocido: ${c}`;
+        try {
+          switch (c) {
+            case 'help':
+              pre.textContent += '\nComandos: help, echo, date, clear, ls, cat, write, mkdir';
+              break;
+            case 'echo':
+              pre.textContent += '\n' + args.join(' ');
+              break;
+            case 'date':
+              pre.textContent += '\n' + new Date().toString();
+              break;
+            case 'clear':
+              pre.textContent = 'Terminal >';
+              break;
+            case 'ls': {
+              const list = fs.ls(args[0] || '/');
+              pre.textContent += '\n' + list.join(' ');
+              break;
+            }
+            case 'cat':
+              pre.textContent += '\n' + fs.cat(args[0]);
+              break;
+            case 'write': {
+              const [file, ...text] = args;
+              fs.write(file, text.join(' '));
+              break;
+            }
+            case 'mkdir':
+              fs.mkdir(args[0]);
+              break;
+            default:
+              if (c) pre.textContent += `\nComando desconocido: ${c}`;
+          }
+        } catch (e) {
+          pre.textContent += '\n' + e.message;
         }
       }
 
