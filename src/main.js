@@ -179,6 +179,13 @@ camera.position.set(0, 0, 650);
 /* Physics */
 const world = new CANNON.World({ gravity: new CANNON.Vec3(0, 0, 0) });
 world.broadphase = new CANNON.NaiveBroadphase();
+// Materiales de íconos con ligera elasticidad
+const iconMat = new CANNON.Material('iconMat');
+const iconContactMat = new CANNON.ContactMaterial(iconMat, iconMat, {
+  restitution: 0.6,
+  friction: 0.4
+});
+world.addContactMaterial(iconContactMat);
 const walls = [];
 function updatePhysicsBounds(){
   walls.forEach(w => world.removeBody(w));
@@ -387,7 +394,11 @@ APPS.forEach((app, i) => {
     basePos: new THREE.Vector3(),
     custom: false
   };
-  const body = new CANNON.Body({ mass: 1, linearDamping: 0.9 });
+  const body = new CANNON.Body({
+    mass: 1,
+    linearDamping: 0.9,
+    material: iconMat
+  });
   body.addShape(new CANNON.Sphere(60));
   obj.userData.body = body;
   body.addEventListener('collide', () => {
