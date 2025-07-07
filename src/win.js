@@ -3,15 +3,21 @@ import { CSS3DObject } from 'three/addons/CSS3DRenderer.js';
 import { createApp } from './apps.js';
 
 let sceneCSS;
+let taskbar;
 let focusedWin = null;
 let zCounter = 1;
 
-export function initWindowSystem(scene) {
+export function initWindowSystem(scene, taskbarContainer) {
   sceneCSS = scene;
+  taskbar  = taskbarContainer;
 }
 
 export class Win {
-  constructor({ id, name }) {
+  constructor({ id, name, icon }) {
+    this.icon = icon;
+    this.state = 'normal';
+    this.prev  = null;
+    this.taskIcon = null;
     this.root = document.createElement('div');
     this.root.className = 'window';
     this.root.id = `win-${id}`;
@@ -22,18 +28,37 @@ export class Win {
     /* Título */
     const title = document.createElement('div');
     title.className = 'titlebar';
-    title.textContent = name;
+    const text = document.createElement('span');
+    text.textContent = name;
+    const btnWrap = document.createElement('div');
+    btnWrap.className = 'title-buttons';
+
+    const minBtn = document.createElement('button');
+    minBtn.className = 'title-btn min-btn';
+    minBtn.textContent = '–';
+    minBtn.onmousedown = e => e.stopPropagation();
+    minBtn.onclick = () => this.minimize();
+
+    this.maxBtn = document.createElement('button');
+    this.maxBtn.className = 'title-btn max-btn';
+    this.maxBtn.textContent = '□';
+    this.maxBtn.onmousedown = e => e.stopPropagation();
+    this.maxBtn.onclick = () => this.toggleMaximize();
 
     const close = document.createElement('button');
-    close.className = 'close-btn';
+    close.className = 'title-btn close-btn';
     close.textContent = '×';
+    close.onmousedown = e => e.stopPropagation();
     close.onclick = () => {
       if (this.interval) clearInterval(this.interval);
+      if (this.taskIcon) this.taskIcon.remove();
       this.root.classList.remove('active');
       if (focusedWin === this) focusedWin = null;
       this.root.addEventListener('transitionend', () => sceneCSS.remove(this.obj), { once: true });
     };
-    title.appendChild(close);
+
+    btnWrap.append(minBtn, this.maxBtn, close);
+    title.append(text, btnWrap);
     this.root.appendChild(title);
 
     /* Contenido */
@@ -139,6 +164,52 @@ export class Win {
       document.addEventListener('touchmove', onMove, { passive: false });
       document.addEventListener('touchend', () => document.removeEventListener('touchmove', onMove), { once: true });
     });
+  }
+
+  minimize() {
+    if (this.state === 'minimized') return;
+    this.state = 'minimized';
+    this.root.style.display = 'none';
+    if (focusedWin === this) focusedWin = null;
+    this.taskIcon = document.createElement('div');
+    this.taskIcon.className = 'task-icon';
+    this.taskIcon.innerHTML = `<img src="${this.icon}">`;
+    this.taskIcon.onclick = () => this.restore();
+    taskbar.appendChild(this.taskIcon);
+  }
+
+  restore() {
+    if (this.state !== 'minimized') return;
+    this.root.style.display = '';
+    if (this.taskIcon) this.taskIcon.remove();
+    this.taskIcon = null;
+    this.state = 'normal';
+    this.focus();
+  }
+
+  toggleMaximize() {
+    if (this.state === 'minimized') {
+      this.restore();
+    }
+    if (this.state === 'maximized') {
+      this.root.style.width = this.prev.w + 'px';
+      this.root.style.height = this.prev.h + 'px';
+      this.obj.position.copy(this.prev.pos);
+      this.state = 'normal';
+      this.maxBtn.textContent = '□';
+    } else {
+      this.prev = {
+        w: this.root.offsetWidth,
+        h: this.root.offsetHeight,
+        pos: this.obj.position.clone()
+      };
+      this.root.style.width = '100vw';
+      this.root.style.height = 'calc(100vh - 40px)';
+      this.obj.position.set(0, 0, 120);
+      this.state = 'maximized';
+      this.maxBtn.textContent = '❐';
+    }
+    this.focus();
   }
 }
 
