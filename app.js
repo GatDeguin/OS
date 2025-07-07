@@ -54,7 +54,8 @@ Object.assign(controls,{
 const APPS = [
   {id:'term', name:'Terminal', icon:'https://img.icons8.com/fluency/96/console.png'},
   {id:'edit', name:'Editor',   icon:'https://img.icons8.com/fluency/96/notepad.png'},
-  {id:'web',  name:'Web',      icon:'https://img.icons8.com/fluency/96/internet.png'}
+  {id:'web',  name:'Web',      icon:'https://img.icons8.com/fluency/96/internet.png'},
+  {id:'clock',name:'Reloj',    icon:'https://img.icons8.com/fluency/96/alarm.png'}
 ];
 
 APPS.forEach((app,i)=>{
@@ -78,7 +79,10 @@ class Win{
     title.className='titlebar'; title.textContent=name;
     const close = document.createElement('button');
     close.className='close-btn'; close.textContent='×';
-    close.onclick = ()=>sceneCSS.remove(this.obj);
+    close.onclick = ()=>{
+      if(this.interval) clearInterval(this.interval);
+      sceneCSS.remove(this.obj);
+    };
     title.appendChild(close); this.root.appendChild(title);
     /* --- Contenido --- */
     const cont = document.createElement('div');
@@ -107,7 +111,21 @@ class Win{
         const iframe=document.createElement('iframe');
         iframe.src='https://example.com';
         cont.appendChild(iframe);
-      }
+      }break;
+      case 'clock':{
+        const clock=document.createElement('div');
+        clock.style.fontSize='2rem';
+        clock.style.display='flex';
+        clock.style.alignItems='center';
+        clock.style.justifyContent='center';
+        const update=()=>{
+          const now=new Date();
+          clock.textContent=now.toLocaleTimeString();
+        };
+        update();
+        this.interval=setInterval(update,1000);
+        cont.appendChild(clock);
+      }break;
     }
 
     /* --- Objeto 3D --- */
