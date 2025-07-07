@@ -26,12 +26,13 @@ rendererCSS.domElement.className   = 'css3d'; // p/selección cómoda
 /* ---------- Fondo degradado (1 sola geometría + CanvasTexture) ---------- */
 (()=>{
   const c = document.createElement('canvas'); c.width=c.height=1024;
-  const g = c.getContext('2d')
-    .createLinearGradient(0,0,0,1024);
-  g.addColorStop(0,'var(--bg-grad-1)');
-  g.addColorStop(1,'var(--bg-grad-2)');
-  c.getContext('2d').fillStyle=g;
-  c.getContext('2d').fillRect(0,0,1024,1024);
+  const ctx = c.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,1024);
+  const styles = getComputedStyle(document.documentElement);
+  grad.addColorStop(0,styles.getPropertyValue('--bg-grad-1').trim());
+  grad.addColorStop(1,styles.getPropertyValue('--bg-grad-2').trim());
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,1024,1024);
   const tex = new THREE.CanvasTexture(c);
   const quad= new THREE.Mesh(
     new THREE.PlaneGeometry(4000,4000),
