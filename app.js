@@ -1,7 +1,7 @@
 /* ---------- Imports ---------- */
 import * as THREE from 'three';
-import {CSS3DRenderer, CSS3DObject} from 'three/addons/renderers/CSS3DRenderer.js';
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {CSS3DRenderer, CSS3DObject} from 'three/addons/CSS3DRenderer.js';
+import {OrbitControls} from 'three/addons/OrbitControls.js';
 
 /* ---------- Constantes ---------- */
 const container = document.getElementById('container');
