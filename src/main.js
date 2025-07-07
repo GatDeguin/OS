@@ -281,6 +281,7 @@ const iconObjs = [];
 const savedIconPos = JSON.parse(localStorage.getItem('iconPositions') || '{}');
 let orientation = size.w >= size.h ? 'landscape' : 'portrait';
 const ICON_ANIM_SPEED = 0.1;
+const ICON_SPRING = 5;
 
 function saveIconPositions() {
   const data = {};
@@ -325,6 +326,7 @@ function layoutIcons(instantly = false) {
 function enableIconDrag(obj) {
   const el = obj.element;
   let start = { x: 0, y: 0, pos: new THREE.Vector3() };
+  obj.userData.dragging = false;
 
   const onMove = e => {
     const c = e.touches ? e.touches[0] : e;
@@ -348,12 +350,16 @@ function enableIconDrag(obj) {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('touchmove', onMove);
     obj.userData.custom = true;
+    obj.userData.dragging = false;
+    obj.userData.basePos.copy(obj.userData.body.position);
+    obj.userData.lastImpulse = obj.userData.body.velocity.clone();
     saveIconPositions();
   };
 
   el.addEventListener('mousedown', e => {
     start = { x: e.clientX, y: e.clientY, pos: obj.userData.body.position.clone() };
     el.classList.add('touching');
+    obj.userData.dragging = true;
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', endDrag, { once: true });
   });
@@ -362,6 +368,7 @@ function enableIconDrag(obj) {
     const c = e.touches[0];
     start = { x: c.clientX, y: c.clientY, pos: obj.userData.body.position.clone() };
     el.classList.add('touching');
+    obj.userData.dragging = true;
     document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('touchend', endDrag, { once: true });
   });
@@ -380,7 +387,7 @@ APPS.forEach((app, i) => {
     basePos: new THREE.Vector3(),
     custom: false
   };
-  const body = new CANNON.Body({ mass: 1 });
+  const body = new CANNON.Body({ mass: 1, linearDamping: 0.9 });
   body.addShape(new CANNON.Sphere(60));
   obj.userData.body = body;
   body.addEventListener('collide', () => {
@@ -529,7 +536,11 @@ addEventListener('resize', () => {
         obj.userData.animTarget = null;
       }
     }
-    obj.userData.basePos.copy(body.position);
+    if (obj.userData.custom && !obj.userData.dragging) {
+      const dx = obj.userData.basePos.x - body.position.x;
+      const dy = obj.userData.basePos.y - body.position.y;
+      body.applyForce(new CANNON.Vec3(dx * ICON_SPRING, dy * ICON_SPRING, 0), body.position);
+    }
     obj.position.set(body.position.x, body.position.y + Math.sin(t + i) * 5, body.position.z);
     obj.quaternion.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
   });
