@@ -35,6 +35,11 @@ export class Win {
     cont.className = 'content';
     this.root.appendChild(cont);
 
+    /* Asa de redimension */
+    const resizer = document.createElement('div');
+    resizer.className = 'resize-handle';
+    this.root.appendChild(resizer);
+
     createApp(id, cont, this);
 
     /* Objeto 3D */
@@ -45,6 +50,7 @@ export class Win {
 
     /* Drag */
     this.#enableDrag(title);
+    this.#enableResize(resizer);
   }
 
   #enableDrag(bar) {
@@ -81,6 +87,39 @@ export class Win {
         () => document.removeEventListener('touchmove', onMove),
         { once: true }
       );
+    });
+  }
+
+  #enableResize(handle) {
+    const MIN_W = 200;
+    const MIN_H = 150;
+    let start = { x: 0, y: 0, w: 0, h: 0 };
+
+    const onMove = e => {
+      const c = e.touches ? e.touches[0] : e;
+      const w = Math.max(MIN_W, start.w + (c.clientX - start.x));
+      const h = Math.max(MIN_H, start.h + (c.clientY - start.y));
+      this.root.style.width = `${w}px`;
+      this.root.style.height = `${h}px`;
+      e.preventDefault();
+    };
+
+    const startRes = e => {
+      const c = e.touches ? e.touches[0] : e;
+      start = { x: c.clientX, y: c.clientY, w: this.root.offsetWidth, h: this.root.offsetHeight };
+      e.preventDefault();
+    };
+
+    handle.onmousedown = e => {
+      startRes(e);
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', () => document.removeEventListener('mousemove', onMove), { once: true });
+    };
+
+    handle.addEventListener('touchstart', e => {
+      startRes(e);
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend', () => document.removeEventListener('touchmove', onMove), { once: true });
     });
   }
 }
