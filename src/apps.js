@@ -125,5 +125,33 @@ export function createApp(id, cont, win) {
       cont.appendChild(wrap);
       break;
     }
+    case 'settings': {
+      cont.style.display = 'flex';
+      cont.style.flexDirection = 'column';
+      cont.style.gap = '10px';
+
+      const themeSel = document.createElement('select');
+      themeSel.innerHTML = '<option value="light">Claro</option><option value="dark">Oscuro</option>';
+      themeSel.value = window.PREFS.theme;
+      themeSel.onchange = () => { window.PREFS.theme = themeSel.value; window.applyTheme(themeSel.value); window.savePrefs(); };
+
+      const wallSel = document.createElement('select');
+      wallSel.innerHTML = '<option value="default">Azul</option><option value="sunset">Atardecer</option><option value="forest">Bosque</option>';
+      wallSel.value = window.PREFS.wallpaper;
+      wallSel.onchange = () => { window.PREFS.wallpaper = wallSel.value; window.applyWallpaper(wallSel.value); window.savePrefs(); };
+
+      const langSel = document.createElement('select');
+      langSel.innerHTML = '<option value="es">Español</option><option value="en">English</option>';
+      langSel.value = window.PREFS.lang;
+      langSel.onchange = () => { window.PREFS.lang = langSel.value; window.applyLang(langSel.value); window.savePrefs(); };
+
+      const contrastSel = document.createElement('select');
+      contrastSel.innerHTML = '<option value="normal">Normal</option><option value="high">Alto</option>';
+      contrastSel.value = window.PREFS.contrast;
+      contrastSel.onchange = () => { window.PREFS.contrast = contrastSel.value; window.applyContrast(contrastSel.value); window.savePrefs(); };
+
+      cont.append('Tema:', themeSel, 'Fondo:', wallSel, 'Idioma:', langSel, 'Contraste:', contrastSel);
+      break;
+    }
   }
 }

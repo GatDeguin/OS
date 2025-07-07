@@ -17,6 +17,113 @@ const startMenu   = document.getElementById('start-menu');
 const taskbarWins = document.getElementById('taskbar-windows');
 const size      = { w: innerWidth, h: innerHeight };
 
+/* ---------- Preferencias ---------- */
+const PREFS = JSON.parse(localStorage.getItem('prefs') || '{}');
+Object.assign(PREFS, {
+  theme: PREFS.theme || 'light',
+  wallpaper: PREFS.wallpaper || 'default',
+  lang: PREFS.lang || 'es',
+  contrast: PREFS.contrast || 'normal'
+});
+function savePrefs() { localStorage.setItem('prefs', JSON.stringify(PREFS)); }
+
+const THEMES = {
+  light:  { '--accent': '#0078d4', '--text': '#333', '--window': '#fff' },
+  dark:   { '--accent': '#0078d4', '--text': '#ddd', '--window': '#222' }
+};
+
+const WALLPAPERS = {
+  default: { '--bg-grad-1': '#1e3c72', '--bg-grad-2': '#2a5298' },
+  sunset:  { '--bg-grad-1': '#ff7e5f', '--bg-grad-2': '#feb47b' },
+  forest:  { '--bg-grad-1': '#0b6623', '--bg-grad-2': '#2a5298' }
+};
+
+const CONTRAST = {
+  normal: {},
+  high: { '--window': '#000', '--text': '#fff', '--accent': '#ff0' }
+};
+
+function setVars(map) {
+  const root = document.documentElement.style;
+  Object.entries(map).forEach(([k,v]) => root.setProperty(k, v));
+}
+
+function applyTheme(t) {
+  setVars(THEMES[t] || THEMES.light);
+}
+
+let wallCanvas, wallTex;
+function applyWallpaper(w) {
+  setVars(WALLPAPERS[w] || WALLPAPERS.default);
+  if (!wallCanvas || !wallTex) return;
+  const ctx = wallCanvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,1024);
+  const styles = getComputedStyle(document.documentElement);
+  grad.addColorStop(0, styles.getPropertyValue('--bg-grad-1').trim());
+  grad.addColorStop(1, styles.getPropertyValue('--bg-grad-2').trim());
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,1024,1024);
+  wallTex.needsUpdate = true;
+}
+
+function applyContrast(c) {
+  setVars(CONTRAST[c] || CONTRAST.normal);
+}
+
+const I18N = {
+  es: {
+    startButton: 'Inicio',
+    overlay: {
+      p1: 'Permite la cámara para usar gestos de mano.',
+      p2: 'Si no está disponible, podrás usar el mouse o la pantalla táctil.',
+      btn: 'Comenzar'
+    },
+    apps: {
+      term: 'Terminal', edit: 'Editor', web: 'Web',
+      clock: 'Reloj', calc: 'Calculadora', settings: 'Ajustes'
+    }
+  },
+  en: {
+    startButton: 'Start',
+    overlay: {
+      p1: 'Allow camera access to use hand gestures.',
+      p2: 'If unavailable, you can use the mouse or touch screen.',
+      btn: 'Start'
+    },
+    apps: {
+      term: 'Terminal', edit: 'Editor', web: 'Web',
+      clock: 'Clock', calc: 'Calculator', settings: 'Settings'
+    }
+  }
+};
+
+function applyLang(l) {
+  const tr = I18N[l] || I18N.es;
+  startButton.textContent = tr.startButton;
+  const ps = overlay.querySelectorAll('p');
+  if (ps[0]) ps[0].textContent = tr.overlay.p1;
+  if (ps[1]) ps[1].textContent = tr.overlay.p2;
+  overlayStartBtn.textContent = tr.overlay.btn;
+  APPS.forEach(app => {
+    app.name = tr.apps[app.id];
+  });
+  iconObjs.forEach((obj,i)=>{
+    const span = obj.element.querySelector('span');
+    if(span) span.textContent = APPS[i].name;
+  });
+  startMenu.querySelectorAll('.start-item').forEach((item,i)=>{
+    const span = item.querySelector('span');
+    if(span) span.textContent = APPS[i].name;
+  });
+}
+
+window.PREFS = PREFS;
+window.savePrefs = savePrefs;
+window.applyTheme = applyTheme;
+window.applyWallpaper = applyWallpaper;
+window.applyLang = applyLang;
+window.applyContrast = applyContrast;
+
 async function populateCameraOptions() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
   const devices = await navigator.mediaDevices.enumerateDevices();
@@ -58,23 +165,16 @@ setupHands({ container, size, camera, sceneCSS, video });
 
 /* ---------- Fondo degradado ---------- */
 (() => {
-  const c = document.createElement('canvas');
-  c.width = c.height = 1024;
-  const ctx = c.getContext('2d');
-  const grad = ctx.createLinearGradient(0, 0, 0, 1024);
-  const styles = getComputedStyle(document.documentElement);
-  grad.addColorStop(0, styles.getPropertyValue('--bg-grad-1').trim());
-  grad.addColorStop(1, styles.getPropertyValue('--bg-grad-2').trim());
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1024, 1024);
-
-  const tex  = new THREE.CanvasTexture(c);
+  wallCanvas = document.createElement('canvas');
+  wallCanvas.width = wallCanvas.height = 1024;
+  wallTex  = new THREE.CanvasTexture(wallCanvas);
   const quad = new THREE.Mesh(
     new THREE.PlaneGeometry(4000, 4000),
-    new THREE.MeshBasicMaterial({ map: tex, depthTest: false })
+    new THREE.MeshBasicMaterial({ map: wallTex, depthTest: false })
   );
   quad.position.z = -500;      // dentro del frustum
   sceneGL.add(quad);
+  applyWallpaper(PREFS.wallpaper);
 })();
 
 /* ---------- Partículas ---------- */
@@ -110,7 +210,8 @@ const APPS = [
   { id: 'edit',  name: 'Editor',       icon: 'https://img.icons8.com/fluency/96/notepad.png' },
   { id: 'web',   name: 'Web',          icon: 'https://img.icons8.com/fluency/96/internet.png' },
   { id: 'clock', name: 'Reloj',        icon: 'https://img.icons8.com/fluency/96/alarm.png' },
-  { id: 'calc',  name: 'Calculadora',  icon: 'https://img.icons8.com/fluency/96/calculator.png' }
+  { id: 'calc',  name: 'Calculadora',  icon: 'https://img.icons8.com/fluency/96/calculator.png' },
+  { id: 'settings', name: 'Ajustes',   icon: 'https://img.icons8.com/fluency/96/settings.png' }
 ];
 
 const iconObjs = [];
@@ -207,6 +308,9 @@ APPS.forEach(app => {
   item.onclick = () => { startMenu.classList.remove('show'); spawnWindow(app); };
   startMenu.appendChild(item);
 });
+applyTheme(PREFS.theme);
+applyContrast(PREFS.contrast);
+applyLang(PREFS.lang);
 startButton.onclick = () => startMenu.classList.toggle('show');
 document.addEventListener('click', e => {
   if (!startMenu.contains(e.target) && e.target !== startButton) {
