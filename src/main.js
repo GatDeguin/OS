@@ -4,6 +4,7 @@ import { CSS3DRenderer, CSS3DObject } from 'three/addons/CSS3DRenderer.js';
 import { OrbitControls } from 'three/addons/OrbitControls.js';
 import { initWindowSystem, spawnWindow } from './win.js';
 import { setupHands } from './hands.js';
+import { setupGaze } from './gaze.js';
 import { APPS } from './pluginApi.js';
 
 /* ---------- Constantes ---------- */
@@ -19,6 +20,8 @@ const startSearch = document.getElementById('start-search');
 const taskbarWins = document.getElementById('taskbar-windows');
 const toastContainer = document.getElementById('toast-container');
 const size      = { w: innerWidth, h: innerHeight };
+const gaze      = { x: 0, y: 0 };
+const tilt      = { beta: 0, gamma: 0 };
 
 /* ---------- Preferencias ---------- */
 const PREFS = JSON.parse(localStorage.getItem('prefs') || '{}');
@@ -189,6 +192,23 @@ rendererCSS.domElement.className    = 'css3d';
 
 initWindowSystem(sceneCSS, taskbarWins);
 setupHands({ container, size, camera, sceneCSS, video });
+setupGaze({ video, onUpdate: (x, y) => { gaze.x = x; gaze.y = y; } });
+
+if (window.DeviceOrientationEvent) {
+  const handler = e => {
+    if (e.beta != null && e.gamma != null) {
+      tilt.beta = e.beta;
+      tilt.gamma = e.gamma;
+    }
+  };
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(() => {
+      window.addEventListener('deviceorientation', handler);
+    }).catch(() => {});
+  } else {
+    window.addEventListener('deviceorientation', handler);
+  }
+}
 
 /* ---------- Fondo degradado ---------- */
 (() => {
@@ -438,6 +458,12 @@ addEventListener('resize', () => {
   requestAnimationFrame(animate);
   controls.update();
   animateGradient();
+  const x = THREE.MathUtils.clamp(gaze.x + tilt.gamma * 0.02, -1, 1);
+  const y = THREE.MathUtils.clamp(gaze.y + tilt.beta * 0.02, -1, 1);
+  sceneGL.position.x = x * 30;
+  sceneGL.position.y = y * 30;
+  sceneCSS.position.x = sceneGL.position.x;
+  sceneCSS.position.y = sceneGL.position.y;
   const t = performance.now() / 1000;
   iconObjs.forEach((obj, i) => {
     obj.position.y = obj.userData.basePos.y + Math.sin(t + i) * 5;
