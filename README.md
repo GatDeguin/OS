@@ -11,7 +11,6 @@ You can open `index.html` directly in your browser. For convenience a small
 Node.js server is provided:
 
 ```bash
-npm install
 node server.js
 ```
 
