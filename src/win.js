@@ -3,6 +3,8 @@ import { CSS3DObject } from 'three/addons/CSS3DRenderer.js';
 import { createApp } from './apps.js';
 
 let sceneCSS;
+let focusedWin = null;
+let zCounter = 1;
 
 export function initWindowSystem(scene) {
   sceneCSS = scene;
@@ -13,6 +15,9 @@ export class Win {
     this.root = document.createElement('div');
     this.root.className = 'window';
     this.root.id = `win-${id}`;
+
+    this.root.addEventListener('mousedown', () => this.focus());
+    this.root.addEventListener('touchstart', () => this.focus());
 
     /* Título */
     const title = document.createElement('div');
@@ -25,6 +30,7 @@ export class Win {
     close.onclick = () => {
       if (this.interval) clearInterval(this.interval);
       this.root.classList.remove('active');
+      if (focusedWin === this) focusedWin = null;
       this.root.addEventListener('transitionend', () => sceneCSS.remove(this.obj), { once: true });
     };
     title.appendChild(close);
@@ -46,11 +52,23 @@ export class Win {
     this.obj = new CSS3DObject(this.root);
     this.obj.position.set(0, 0, 120);
     sceneCSS.add(this.obj);
+    this.focus();
     requestAnimationFrame(() => this.root.classList.add('active'));
 
     /* Drag */
     this.#enableDrag(title);
     this.#enableResize(resizer);
+  }
+
+  focus() {
+    if (focusedWin && focusedWin !== this) {
+      focusedWin.root.classList.remove('focused');
+    }
+    focusedWin = this;
+    this.root.classList.add('focused');
+    this.root.style.zIndex = (++zCounter).toString();
+    sceneCSS.remove(this.obj);
+    sceneCSS.add(this.obj);
   }
 
   #enableDrag(bar) {
