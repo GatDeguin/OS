@@ -5,7 +5,8 @@ const path = require('path');
 const port = process.env.PORT || 8000;
 
 http.createServer((req, res) => {
-  let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
+  const urlPath = req.url === '/' ? 'index.html' : req.url;
+  const filePath = path.join(__dirname, urlPath.replace(/^\//, ''));
   const ext = path.extname(filePath).toLowerCase();
   const mime = {
     '.html': 'text/html',
