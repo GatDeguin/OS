@@ -1,142 +1,168 @@
 import * as THREE from 'three';
 
-export function setupHands({ container, size, camera, sceneCSS, video }) {
-  const cursor = document.createElement('div');
-  cursor.id = 'hand-cursor';
-  container.appendChild(cursor);
-  const cursorPos = { x: 0, y: 0 };
-  let leftDown = false;
-  let rightDown = false;
-  function sendMouse(type, button) {
-    const el = document.elementFromPoint(cursorPos.x, cursorPos.y);
+class HandTracker {
+  constructor({ container, size, camera, sceneCSS }) {
+    this.size = size;
+    this.camera = camera;
+    this.sceneCSS = sceneCSS;
+    this.cursorPos = { x: 0, y: 0 };
+    this.leftDown = false;
+    this.rightDown = false;
+    this.grabbing = false;
+    this.target = null;
+
+    this.cursor = document.createElement('div');
+    this.cursor.id = 'hand-cursor';
+    container.appendChild(this.cursor);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = size.w;
+    canvas.height = size.h;
+    canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2';
+    container.appendChild(canvas);
+    this.ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    this.hands = new Hands({
+      locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.10.24/${f}`
+    });
+    this.hands.setOptions({
+      maxNumHands: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7
+    });
+    this.hands.onResults(r => this.onResults(r));
+  }
+
+  start(video) {
+    this.video = video;
+    video.addEventListener('playing', () => this.loop());
+  }
+
+  loop() {
+    this.hands.send({ image: this.video });
+    requestAnimationFrame(() => this.loop());
+  }
+
+  sendMouse(type, button) {
+    const el = document.elementFromPoint(this.cursorPos.x, this.cursorPos.y);
     if (!el) return;
     const evt = new MouseEvent(type, {
       bubbles: true,
-      clientX: cursorPos.x,
-      clientY: cursorPos.y,
+      clientX: this.cursorPos.x,
+      clientY: this.cursorPos.y,
       button
     });
     el.dispatchEvent(evt);
   }
-  const ctx2 = (() => {
-    const c = document.createElement('canvas');
-    c.width = size.w; c.height = size.h;
-    c.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2';
-    container.appendChild(c);
-    return c.getContext('2d', { willReadFrequently: true });
-  })();
 
-  const hands = new Hands({
-    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.10.24/${f}`
-  });
-  hands.setOptions({
-    maxNumHands: 1,
-    minDetectionConfidence: 0.7,
-    minTrackingConfidence: 0.7
-  });
-
-  let grabbing = false;
-  let target   = null;
-  const finger = [4, 8];
-
-  hands.onResults(({ multiHandLandmarks: [lm] }) => {
-    ctx2.clearRect(0, 0, size.w, size.h);
+  onResults({ multiHandLandmarks }) {
+    this.ctx.clearRect(0, 0, this.size.w, this.size.h);
+    const [lm] = multiHandLandmarks || [];
     if (!lm) {
-      cursor.style.display = 'none';
-      cursor.classList.remove('active');
-      if (leftDown) {
-        sendMouse('mouseup', 0);
-        leftDown = false;
+      this.cursor.style.display = 'none';
+      this.cursor.classList.remove('active');
+      if (this.leftDown) {
+        this.sendMouse('mouseup', 0);
+        this.leftDown = false;
       }
-      if (rightDown) {
-        sendMouse('mouseup', 2);
-        rightDown = false;
+      if (this.rightDown) {
+        this.sendMouse('mouseup', 2);
+        this.rightDown = false;
       }
-      grabbing = false;
-      target = null;
+      this.grabbing = false;
+      this.target = null;
       return;
     }
-    cursor.style.display = 'block';
 
-    drawConnectors(ctx2, lm, HAND_CONNECTIONS, { color: '#0f0', lineWidth: 2 });
-    drawLandmarks(ctx2, lm, { color: '#0f0', lineWidth: 1 });
+    this.cursor.style.display = 'block';
+    drawConnectors(this.ctx, lm, HAND_CONNECTIONS, { color: '#0f0', lineWidth: 2 });
+    drawLandmarks(this.ctx, lm, { color: '#0f0', lineWidth: 1 });
 
-    const idx = lm[8];
-    cursorPos.x = idx.x * size.w;
-    cursorPos.y = idx.y * size.h;
-    cursor.style.transform = `translate(${cursorPos.x}px,${cursorPos.y}px)`;
+    const indexTip = lm[8];
+    this.cursorPos.x = indexTip.x * this.size.w;
+    this.cursorPos.y = indexTip.y * this.size.h;
+    this.cursor.style.transform = `translate(${this.cursorPos.x}px,${this.cursorPos.y}px)`;
 
-    sendMouse('mousemove', 0);
+    this.sendMouse('mousemove', 0);
 
-    const [p1, p2] = finger.map(i => lm[i]);
-    const mid  = { x: (p1.x + p2.x) / 2 * size.w, y: (p1.y + p2.y) / 2 * size.h };
-    const dist = Math.hypot((p2.x - p1.x) * size.w, (p2.y - p1.y) * size.h);
+    const thumbTip = lm[4];
+    const middleTip = lm[12];
+    const mid = {
+      x: (thumbTip.x + indexTip.x) / 2 * this.size.w,
+      y: (thumbTip.y + indexTip.y) / 2 * this.size.h
+    };
+    const clickDist = Math.hypot((indexTip.x - thumbTip.x) * this.size.w,
+      (indexTip.y - thumbTip.y) * this.size.h);
+    const rightDist = Math.hypot((middleTip.x - thumbTip.x) * this.size.w,
+      (middleTip.y - thumbTip.y) * this.size.h);
 
-    const rightDist = Math.hypot((lm[12].x - lm[4].x) * size.w, (lm[12].y - lm[4].y) * size.h);
+    this.ctx.beginPath();
+    this.ctx.arc(mid.x, mid.y, 10, 0, Math.PI * 2);
+    this.ctx.fillStyle = 'rgba(255,0,0,.6)';
+    this.ctx.fill();
 
-    ctx2.beginPath();
-    ctx2.arc(mid.x, mid.y, 10, 0, 2 * Math.PI);
-    ctx2.fillStyle = 'rgba(255,0,0,.6)';
-    ctx2.fill();
-
-    if (dist < 40) {
-      if (!leftDown) {
-        sendMouse('mousedown', 0);
-        leftDown = true;
+    if (clickDist < 40) {
+      if (!this.leftDown) {
+        this.sendMouse('mousedown', 0);
+        this.leftDown = true;
       }
-      cursor.classList.add('active');
-      if (!grabbing) {
-        grabbing = true;
+      this.cursor.classList.add('active');
+      if (!this.grabbing) {
+        this.grabbing = true;
         const ndc = new THREE.Vector3(
-          (mid.x / size.w) * 2 - 1,
-          -(mid.y / size.h) * 2 + 1,
+          (mid.x / this.size.w) * 2 - 1,
+          -(mid.y / this.size.h) * 2 + 1,
           0.5
-        ).unproject(camera);
-        const ray  = new THREE.Raycaster(
-          camera.position,
-          ndc.sub(camera.position).normalize()
+        ).unproject(this.camera);
+        const ray = new THREE.Raycaster(
+          this.camera.position,
+          ndc.sub(this.camera.position).normalize()
         );
-        const hits = ray.intersectObjects(sceneCSS.children);
-        target = hits[0]?.object ?? null;
+        const hits = ray.intersectObjects(this.sceneCSS.children);
+        this.target = hits[0]?.object || null;
       }
-      if (target) {
+      if (this.target) {
         const ndc2 = new THREE.Vector3(
-          (mid.x / size.w) * 2 - 1,
-          -(mid.y / size.h) * 2 + 1,
-          target.position.z / (2000 / camera.far)
-        ).unproject(camera);
-        target.position.copy(ndc2);
+          (mid.x / this.size.w) * 2 - 1,
+          -(mid.y / this.size.h) * 2 + 1,
+          this.target.position.z / (2000 / this.camera.far)
+        ).unproject(this.camera);
+        this.target.position.copy(ndc2);
       }
     } else {
-      if (leftDown) {
-        sendMouse('mouseup', 0);
-        sendMouse('click', 0);
+      if (this.leftDown) {
+        this.sendMouse('mouseup', 0);
+        this.sendMouse('click', 0);
       }
-      leftDown = false;
-      cursor.classList.toggle('active', rightDown);
-      grabbing = false;
-      target   = null;
+      this.leftDown = false;
+      this.cursor.classList.toggle('active', this.rightDown);
+      this.grabbing = false;
+      this.target = null;
     }
 
     if (rightDist < 40) {
-      if (!rightDown) {
-        sendMouse('mousedown', 2);
-        rightDown = true;
+      if (!this.rightDown) {
+        this.sendMouse('mousedown', 2);
+        this.rightDown = true;
       }
-      cursor.classList.add('active');
-    } else if (rightDown) {
-      sendMouse('mouseup', 2);
-      const el = document.elementFromPoint(cursorPos.x, cursorPos.y);
-      if (el) el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: cursorPos.x, clientY: cursorPos.y, button: 2 }));
-      rightDown = false;
-      cursor.classList.toggle('active', leftDown);
+      this.cursor.classList.add('active');
+    } else if (this.rightDown) {
+      this.sendMouse('mouseup', 2);
+      const el = document.elementFromPoint(this.cursorPos.x, this.cursorPos.y);
+      if (el) el.dispatchEvent(new MouseEvent('contextmenu', {
+        bubbles: true,
+        clientX: this.cursorPos.x,
+        clientY: this.cursorPos.y,
+        button: 2
+      }));
+      this.rightDown = false;
+      this.cursor.classList.toggle('active', this.leftDown);
     }
-  });
+  }
+}
 
-  video.addEventListener('playing', function loop() {
-    hands.send({ image: video });
-    requestAnimationFrame(loop);
-  });
-
-  return hands;
+export function setupHands({ container, size, camera, sceneCSS, video }) {
+  const tracker = new HandTracker({ container, size, camera, sceneCSS });
+  tracker.start(video);
+  return tracker.hands;
 }
