@@ -1,17 +1,20 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/GLTFLoader.js';
 
 let drawConnectors, drawLandmarks, HAND_CONNECTIONS;
 
 export class HandTracker {
-  constructor({ container, size, camera, sceneCSS }) {
+  constructor({ container, size, camera, sceneCSS, sceneGL }) {
     this.size = size;
     this.camera = camera;
     this.sceneCSS = sceneCSS;
+    this.sceneGL  = sceneGL;
     this.cursorPos = { x: 0, y: 0 };
     this.leftDown = false;
     this.rightDown = false;
     this.grabbing = false;
     this.target = null;
+    this.handModel = null;
 
     this.cursor = document.createElement('div');
     this.cursor.id = 'hand-cursor';
@@ -39,6 +42,13 @@ export class HandTracker {
         window.showToast && window.showToast('Error al cargar MediaPipe Hands');
         return;
       }
+      const loader = new GLTFLoader();
+      loader.load('../models/hand.glb', glb => {
+        this.handModel = glb.scene;
+        this.handModel.scale.setScalar(200);
+        this.handModel.visible = false;
+        (this.sceneGL || this.sceneCSS).add(this.handModel);
+      });
       this.worker = new Worker('../workers/handsWorker.js');
       this.worker.onmessage = e => this.onResults(e.data);
       this.worker.postMessage({ type: 'init' });
@@ -64,11 +74,39 @@ export class HandTracker {
     el.dispatchEvent(evt);
   }
 
+  updateHandPose(lm) {
+    if (!this.handModel) return;
+    const wrist = lm[0];
+    const index = lm[5];
+    const pinky = lm[17];
+    const scale = 1000;
+    const pos = new THREE.Vector3(
+      (wrist.x - 0.5) * this.size.w,
+      -(wrist.y - 0.5) * this.size.h,
+      -wrist.z * scale
+    );
+    this.handModel.position.copy(pos);
+    const vx = new THREE.Vector3(
+      pinky.x - wrist.x,
+      -(pinky.y - wrist.y),
+      pinky.z - wrist.z
+    ).normalize();
+    const vy = new THREE.Vector3(
+      index.x - wrist.x,
+      -(index.y - wrist.y),
+      index.z - wrist.z
+    ).normalize();
+    const vz = new THREE.Vector3().crossVectors(vx, vy).normalize();
+    const m = new THREE.Matrix4().makeBasis(vx, vy, vz);
+    this.handModel.setRotationFromMatrix(m);
+  }
+
   onResults({ multiHandLandmarks }) {
     this.ctx.clearRect(0, 0, this.size.w, this.size.h);
     const [lm] = multiHandLandmarks || [];
     if (!lm) {
       this.cursor.style.display = 'none';
+      if (this.handModel) this.handModel.visible = false;
       this.cursor.classList.remove('active', 'clicking', 'dragging');
       if (this.leftDown) {
         this.sendMouse('mouseup', 0);
@@ -83,7 +121,11 @@ export class HandTracker {
       return;
     }
 
-    this.cursor.style.display = 'block';
+    this.cursor.style.display = 'none';
+    if (this.handModel) {
+      this.handModel.visible = true;
+      this.updateHandPose(lm);
+    }
     drawConnectors(this.ctx, lm, HAND_CONNECTIONS, { color: '#0f0', lineWidth: 2 });
     drawLandmarks(this.ctx, lm, { color: '#0f0', lineWidth: 1 });
 
@@ -174,8 +216,8 @@ export class HandTracker {
   }
 }
 
-export function setupHands({ container, size, camera, sceneCSS, video }) {
-  const tracker = new HandTracker({ container, size, camera, sceneCSS });
+export function setupHands({ container, size, camera, sceneCSS, sceneGL, video }) {
+  const tracker = new HandTracker({ container, size, camera, sceneCSS, sceneGL });
   tracker.start(video);
   return tracker.worker;
 }

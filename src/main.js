@@ -199,7 +199,7 @@ rendererCSS.domElement.style.zIndex = '10';
 rendererCSS.domElement.className    = 'css3d';
 
 initWindowSystem(sceneCSS, taskbarWins);
-setupHands({ container, size, camera, sceneCSS, video });
+setupHands({ container, size, camera, sceneCSS, sceneGL, video });
 setupGaze({ video, onUpdate: (x, y) => { gaze.x = x; gaze.y = y; } });
 
 let orientationHandler;
