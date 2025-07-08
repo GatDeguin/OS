@@ -3,7 +3,7 @@ export function setupGaze({ video, onUpdate }) {
   video.addEventListener('playing', async function init() {
     video.removeEventListener('playing', init);
     try {
-      const mod = await import('https://cdn.skypack.dev/@mediapipe/face_mesh');
+      const mod = await import('https://cdn.skypack.dev/@mediapipe/face_mesh@0.4.1633559619');
       const { FaceMesh } = mod;
       face = new FaceMesh({
         locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${f}`
