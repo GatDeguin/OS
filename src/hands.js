@@ -55,7 +55,7 @@ export class HandTracker {
     const [lm] = multiHandLandmarks || [];
     if (!lm) {
       this.cursor.style.display = 'none';
-      this.cursor.classList.remove('active');
+      this.cursor.classList.remove('active', 'clicking', 'dragging');
       if (this.leftDown) {
         this.sendMouse('mouseup', 0);
         this.leftDown = false;
@@ -101,7 +101,7 @@ export class HandTracker {
         this.sendMouse('mousedown', 0);
         this.leftDown = true;
       }
-      this.cursor.classList.add('active');
+      this.cursor.classList.add('active', 'clicking');
       if (!this.grabbing) {
         this.grabbing = true;
         const ndc = new THREE.Vector3(
@@ -124,6 +124,7 @@ export class HandTracker {
         ).unproject(this.camera);
         this.target.position.copy(ndc2);
       }
+      this.cursor.classList.toggle('dragging', !!this.target);
     } else {
       if (this.leftDown) {
         this.sendMouse('mouseup', 0);
@@ -131,6 +132,8 @@ export class HandTracker {
       }
       this.leftDown = false;
       this.cursor.classList.toggle('active', this.rightDown);
+      if (!this.rightDown) this.cursor.classList.remove('clicking');
+      this.cursor.classList.remove('dragging');
       this.grabbing = false;
       this.target = null;
     }
@@ -140,7 +143,7 @@ export class HandTracker {
         this.sendMouse('mousedown', 2);
         this.rightDown = true;
       }
-      this.cursor.classList.add('active');
+      this.cursor.classList.add('active', 'clicking');
     } else if (this.rightDown) {
       this.sendMouse('mouseup', 2);
       const el = document.elementFromPoint(this.cursorPos.x, this.cursorPos.y);
@@ -152,6 +155,7 @@ export class HandTracker {
       }));
       this.rightDown = false;
       this.cursor.classList.toggle('active', this.leftDown);
+      if (!this.leftDown) this.cursor.classList.remove('clicking');
     }
   }
 }
