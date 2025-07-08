@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-class HandTracker {
+export class HandTracker {
   constructor({ container, size, camera, sceneCSS }) {
     this.size = size;
     this.camera = camera;
@@ -23,7 +23,7 @@ class HandTracker {
     this.ctx = canvas.getContext('2d', { willReadFrequently: true });
 
     this.hands = new Hands({
-      locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.10.24/${f}`
+      locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${f}`
     });
     this.hands.setOptions({
       maxNumHands: 1,
