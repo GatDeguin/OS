@@ -6,7 +6,7 @@ export function setupGaze({ video, onUpdate }) {
       const { FaceMesh } = globalThis;
       if (!FaceMesh) throw new Error('FaceMesh not loaded');
       face = new FaceMesh({
-        locateFile: f => `../vendor/mediapipe/${f}`
+        locateFile: f => `vendor/mediapipe/${f}`
       });
       face.setOptions({
         maxNumFaces: 1,
