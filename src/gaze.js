@@ -1,6 +1,7 @@
 export function setupGaze({ video, onUpdate }) {
   const face = new FaceMesh({
-    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${f}`
+    // Match FaceMesh script version
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${f}`
   });
   face.setOptions({
     maxNumFaces: 1,
