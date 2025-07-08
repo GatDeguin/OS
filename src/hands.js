@@ -43,7 +43,7 @@ export class HandTracker {
         return;
       }
       const loader = new GLTFLoader();
-      loader.load('../models/hand.glb', glb => {
+      loader.load('models/hand.glb', glb => {
         this.handModel = glb.scene;
         this.handModel.scale.setScalar(200);
         this.handModel.visible = false;
