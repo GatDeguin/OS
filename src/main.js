@@ -7,7 +7,6 @@ import { setupHands } from './hands.js';
 import { setupGaze } from './gaze.js';
 import { APPS } from './pluginApi.js';
 import store, { subscribe } from './state.js';
-import * as CANNON from 'cannon-es';
 
 /* ---------- Constantes ---------- */
 const container = document.getElementById('container');
@@ -171,34 +170,16 @@ const sceneCSS = new THREE.Scene();
 const camera   = new THREE.PerspectiveCamera(50, size.w / size.h, 1, 2000);
 camera.position.set(0, 0, 650);
 
-/* Physics */
-const world = new CANNON.World({ gravity: new CANNON.Vec3(0, 0, 0) });
-world.broadphase = new CANNON.NaiveBroadphase();
-// Materiales de íconos con ligera elasticidad
-const iconMat = new CANNON.Material('iconMat');
-const iconContactMat = new CANNON.ContactMaterial(iconMat, iconMat, {
-  restitution: 0.6,
-  friction: 0.4
-});
-world.addContactMaterial(iconContactMat);
-const walls = [];
+/* Physics via worker */
+const physicsWorker = new Worker('../workers/physicsWorker.js', { type: 'module' });
+let bodyStates = [];
+physicsWorker.onmessage = e => {
+  if (e.data.type === 'update') bodyStates = e.data.bodies;
+};
 function updatePhysicsBounds(){
-  walls.forEach(w => world.removeBody(w));
-  walls.length = 0;
   const halfH = camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   const halfW = halfH * camera.aspect;
-  const t = 10;
-  const make = (x,y,w,h)=>{
-    const b=new CANNON.Body({ mass:0 });
-    b.addShape(new CANNON.Box(new CANNON.Vec3(w, h, t)));
-    b.position.set(x,y,0);
-    world.addBody(b);
-    walls.push(b);
-  };
-  make(-halfW - t, 0, t, halfH + t);
-  make( halfW + t, 0, t, halfH + t);
-  make(0,  halfH + t, halfW + t, t);
-  make(0, -halfH - t, halfW + t, t);
+  physicsWorker.postMessage({ type: 'resize', data: { bounds: { halfW, halfH } } });
 }
 updatePhysicsBounds();
 
@@ -288,8 +269,8 @@ const ICON_SPRING = 5;
 function saveIconPositions() {
   const data = {};
   iconObjs.forEach(obj => {
-    const p = obj.userData.body ? obj.userData.body.position : obj.userData.basePos;
-    data[obj.userData.id] = { x: p.x, y: p.y };
+    const state = bodyStates[obj.userData.index] || obj.userData.basePos;
+    data[obj.userData.id] = { x: state.x, y: state.y };
   });
   localStorage.setItem('iconPositions', JSON.stringify(data));
 }
@@ -311,15 +292,9 @@ function layoutIcons(instantly = false) {
     obj.userData.basePos.set(x, y, 0);
     if (instantly) {
       obj.position.copy(obj.userData.basePos);
-      if (obj.userData.body) {
-        obj.userData.body.position.set(x, y, 0);
-        obj.userData.body.velocity.set(0, 0, 0);
-      }
+      physicsWorker.postMessage({ type: 'set', data: { index: obj.userData.index, x, y } });
     } else {
       obj.userData.animTarget = new THREE.Vector3(x, y, 0);
-      if (obj.userData.body) {
-        obj.userData.body.velocity.set(0, 0, 0);
-      }
     }
     j++;
   });
@@ -338,15 +313,15 @@ function screenToWorld(xScreen, yScreen) {
 
 function makeDraggable(obj) {
   const el = obj.element;
-  const body = obj.userData.body;
   obj.userData.dragging = false;
 
   const onMove = e => {
     const c = e.touches ? e.touches[0] : e;
     const pos = screenToWorld(c.clientX, c.clientY);
-    const dx = pos.x - body.position.x;
-    const dy = pos.y - body.position.y;
-    body.applyImpulse(new CANNON.Vec3(dx * 4, dy * 4, 0), body.position);
+    const state = bodyStates[obj.userData.index] || { x: 0, y: 0 };
+    const dx = pos.x - state.x;
+    const dy = pos.y - state.y;
+    physicsWorker.postMessage({ type: 'impulse', data: { index: obj.userData.index, x: dx * 4, y: dy * 4 } });
     e.preventDefault();
   };
 
@@ -355,8 +330,10 @@ function makeDraggable(obj) {
     document.removeEventListener('touchmove', onMove);
     obj.userData.custom = true;
     obj.userData.dragging = false;
-    obj.userData.basePos.copy(body.position);
-    obj.userData.lastImpulse = body.velocity.clone();
+    const state = bodyStates[obj.userData.index];
+    if (state) {
+      obj.userData.basePos.set(state.x, state.y, 0);
+    }
     saveIconPositions();
   };
 
@@ -388,30 +365,24 @@ APPS.forEach((app, i) => {
     basePos: new THREE.Vector3(),
     custom: false
   };
-  const body = new CANNON.Body({
-    mass: 1,
-    linearDamping: 0.9,
-    material: iconMat
-  });
-  body.addShape(new CANNON.Sphere(60));
-  obj.userData.body = body;
-  body.addEventListener('collide', () => {
-    el.classList.add('squish');
-    setTimeout(() => el.classList.remove('squish'), 200);
-  });
   iconObjs.push(obj);
   sceneCSS.add(obj);
-  world.addBody(body);
+  obj.userData.index = i;
   if (savedIconPos[app.id]) {
     obj.userData.basePos.set(savedIconPos[app.id].x, savedIconPos[app.id].y, 0);
     obj.position.copy(obj.userData.basePos);
-    body.position.set(obj.userData.basePos.x, obj.userData.basePos.y, 0);
     obj.userData.custom = true;
   }
   el.addEventListener('click', () => spawnWindow(app));
   makeDraggable(obj);
 });
 layoutIcons(true);
+physicsWorker.postMessage({
+  type: 'init',
+  data: {
+    icons: iconObjs.map(o => ({ x: o.userData.basePos.x, y: o.userData.basePos.y }))
+  }
+});
 
 function runIntro(){
   iconObjs.forEach((obj,i)=>{
@@ -531,27 +502,26 @@ addEventListener('orientationchange', handleResize);
   sceneGL.position.y = y * 30;
   sceneCSS.position.x = sceneGL.position.x;
   sceneCSS.position.y = sceneGL.position.y;
-  const delta = 1 / 60;
-  world.step(delta);
   const t = performance.now() / 1000;
   iconObjs.forEach((obj, i) => {
-    const body = obj.userData.body;
+    const state = bodyStates[obj.userData.index];
+    if (!state) return;
     if (obj.userData.animTarget) {
-      const cur = new THREE.Vector3(body.position.x, body.position.y, body.position.z);
+      const cur = new THREE.Vector3(state.x, state.y, state.z);
       cur.lerp(obj.userData.animTarget, ICON_ANIM_SPEED);
-      body.position.set(cur.x, cur.y, cur.z);
+      physicsWorker.postMessage({ type: 'set', data: { index: obj.userData.index, x: cur.x, y: cur.y } });
       if (cur.distanceTo(obj.userData.animTarget) < 0.5) {
-        body.position.copy(obj.userData.animTarget);
+        physicsWorker.postMessage({ type: 'set', data: { index: obj.userData.index, x: obj.userData.animTarget.x, y: obj.userData.animTarget.y } });
         obj.userData.animTarget = null;
       }
     }
     if (obj.userData.custom && !obj.userData.dragging) {
-      const dx = obj.userData.basePos.x - body.position.x;
-      const dy = obj.userData.basePos.y - body.position.y;
-      body.applyForce(new CANNON.Vec3(dx * ICON_SPRING, dy * ICON_SPRING, 0), body.position);
+      const dx = obj.userData.basePos.x - state.x;
+      const dy = obj.userData.basePos.y - state.y;
+      physicsWorker.postMessage({ type: 'force', data: { index: obj.userData.index, x: dx * ICON_SPRING, y: dy * ICON_SPRING } });
     }
-    obj.position.set(body.position.x, body.position.y + Math.sin(t + i) * 5, body.position.z);
-    obj.quaternion.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
+    obj.position.set(state.x, state.y + Math.sin(t + i) * 5, state.z);
+    obj.quaternion.set(state.qx, state.qy, state.qz, state.qw);
   });
   stars.rotation.y += 0.0005;
   rendererGL.render(sceneGL, camera);
