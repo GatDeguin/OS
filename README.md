@@ -9,7 +9,7 @@ calculator.
 ## Requirements
 - Modern browser with WebGL and camera access
 - Node.js (optional, for local server)
-- Internet connection (MediaPipe runtime files are fetched from CDN)
+- Internet connection (first time MediaPipe assets may be fetched from CDN)
 
 ## Running the demo
 You can open `index.html` directly in your browser. For convenience a small
