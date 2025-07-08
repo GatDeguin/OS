@@ -26,7 +26,8 @@ Run `NODE_OPTIONS=--experimental-vm-modules npm test` to execute the Jest test s
 
 Plugins live under the `plugins/` directory. Each plugin is a folder
 containing a `manifest.json` and the JavaScript file implementing the
-application.
+application. For a full walkthrough of the plugin API see
+[docs/plugins.md](docs/plugins.md).
 
 `manifest.json` must define at least:
 
