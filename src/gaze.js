@@ -3,8 +3,8 @@ export function setupGaze({ video, onUpdate }) {
   video.addEventListener('playing', async function init() {
     video.removeEventListener('playing', init);
     try {
-      const mod = await import('../vendor/mediapipe/face_mesh.min.js');
-      const { FaceMesh } = mod;
+      const { FaceMesh } = globalThis;
+      if (!FaceMesh) throw new Error('FaceMesh not loaded');
       face = new FaceMesh({
         locateFile: f => `../vendor/mediapipe/${f}`
       });
