@@ -13,10 +13,11 @@ calculator.
 
 ## Running the demo
 You can open `index.html` directly in your browser. For convenience a small
-Node.js server is provided:
+Node.js server is provided. Install dependencies and start it with:
 
 ```bash
-node server.js
+npm install
+npm start
 ```
 
 The server listens on port 8000 by default. Visit
