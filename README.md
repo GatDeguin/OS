@@ -42,6 +42,13 @@ Avoid paths containing intermediate `controls/` or `renderers/`
 subdirectories, as those do not exist and will lead to 404
 errors when loading the modules.
 
+## Plugins
+
+OS supports lightweight plugins located under the `plugins/` directory.
+Each plugin provides a manifest describing the application and a script
+implementing it. A step‑by‑step guide and API documentation are
+available in [docs/plugins.md](docs/plugins.md).
+
 See [CONTRIBUTING](CONTRIBUTING.md) for details on testing and submitting
 changes.
 
