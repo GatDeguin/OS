@@ -202,20 +202,14 @@ initWindowSystem(sceneCSS, taskbarWins);
 setupHands({ container, size, camera, sceneCSS, video });
 setupGaze({ video, onUpdate: (x, y) => { gaze.x = x; gaze.y = y; } });
 
+let orientationHandler;
 if (window.DeviceOrientationEvent) {
-  const handler = e => {
+  orientationHandler = e => {
     if (e.beta != null && e.gamma != null) {
       tilt.beta = e.beta;
       tilt.gamma = e.gamma;
     }
   };
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission().then(() => {
-      window.addEventListener('deviceorientation', handler);
-    }).catch(() => {});
-  } else {
-    window.addEventListener('deviceorientation', handler);
-  }
 }
 
 /* ---------- Fondo degradado ---------- */
@@ -474,7 +468,22 @@ function startCamera(deviceId) {
     });
 }
 
-overlayStartBtn.onclick = () => startCamera(cameraSelect.value);
+overlayStartBtn.onclick = () => {
+  if (window.DeviceOrientationEvent) {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission()
+        .then(() => {
+          window.addEventListener('deviceorientation', orientationHandler);
+        })
+        .catch(err => {
+          console.warn('Permiso de DeviceOrientation denegado o no disponible.', err);
+        });
+    } else {
+      window.addEventListener('deviceorientation', orientationHandler);
+    }
+  }
+  startCamera(cameraSelect.value);
+};
 
 /* ---------- Resize & Orientation ---------- */
 function handleResize() {
