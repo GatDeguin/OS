@@ -15,146 +15,6 @@
   <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAPAAAP///wAAACwAAAAAAQABAEACAkQBADs=">
 
   <!-- =======================  ESTILOS  ======================= -->
-  <style>
-    :root{
-      --bg-grad-1:#1e3c72;
-      --bg-grad-2:#2a5298;
-      --accent:#0078d4;
-      --text:#333;
-      --window:#fff;
-      --shadow:0 4px 12px rgba(0,0,0,.45);
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body{width:100%;height:100%;overflow:hidden;font-family:'Poppins','Segoe UI',sans-serif}
-
-    /* ---------- Orden de capas ---------- */
-    #container{position:relative;width:100%;height:100%;z-index:1}
-
-    canvas,video,.css3d{position:absolute;top:0;left:0;width:100%;height:100%}
-
-    /* El vídeo es solo fuente para MediaPipe, nunca visible */
-    video{
-      width:0;height:0;           /* ocupa cero pantalla */
-      opacity:0 !important;
-      pointer-events:none;
-      z-index:-1;
-    }
-
-    /* ---------- Escritorio ---------- */
-    .icon,.window{
-      user-select:none;border-radius:8px;
-      box-shadow:var(--shadow);background:var(--window);
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      cursor:pointer;transition:transform .3s,opacity .3s;
-    }
-    .icon{width:120px;height:120px;position:relative}
-    .icon:hover{transform:scale(1.05)}
-    .icon::after{
-      content:"";position:absolute;inset:0;border-radius:8px;
-      box-shadow:0 0 12px var(--accent);opacity:0;transition:opacity .3s;
-    }
-    .icon:hover::after{opacity:.6}
-    .icon img{width:64px;height:64px;margin-top:4px}
-    .icon span{margin-top:6px;font-size:.9rem;color:var(--text)}
-    .icon.touching{transform:scale(0.9)!important}
-    .icon.squish{animation:squish .2s}
-    @keyframes squish{from{transform:scale(1)}50%{transform:scale(.85,1.15)}to{transform:scale(1)}}
-
-    /* ---------- Ventanas ---------- */
-    .window{
-      position:relative;cursor:default;
-      width:min(380px,90vw);height:min(260px,70vh);opacity:0;transform:scale(.85);
-      background:rgba(255,255,255,.2);backdrop-filter:blur(12px);
-      border:1px solid rgba(255,255,255,.3);
-      transition:opacity .3s ease,transform .3s ease;
-    }
-    .window.active{opacity:1;transform:scale(1)}
-    .window.focused{box-shadow:0 0 0 2px var(--accent),var(--shadow)}
-    .titlebar{
-      background:rgba(255,255,255,.3);color:var(--text);padding:6px 10px;
-      display:flex;justify-content:space-between;align-items:center;
-      cursor:move;font-weight:600;font-size:.95rem;backdrop-filter:blur(12px)
-    }
-    .title-buttons{display:flex;gap:4px;}
-    .title-btn{
-      border:none;border-radius:50%;width:20px;height:20px;
-      font-weight:bolder;cursor:pointer;color:#fff
-    }
-    .min-btn{background:#ffc40d;color:#000}
-    .max-btn{background:#107c10}
-    .close-btn{background:#e81123}
-    .title-btn:hover{filter:brightness(1.1)}
-    .content{flex:1;padding:8px;background:#f7f7f7;overflow:auto}
-    .resize-handle{
-      position:absolute;width:16px;height:16px;right:2px;bottom:2px;
-      cursor:se-resize;
-      border-right:2px solid #888;border-bottom:2px solid #888;
-    }
-    textarea,pre,input,iframe{width:100%;height:100%;border:none;background:#fff}
-    textarea{resize:none;padding:8px;font-family:inherit}
-
-    /* ---------- Overlay de inicio ---------- */
-    #overlay{
-      position:fixed;top:0;left:0;width:100%;height:100%;
-      background:rgba(0,0,0,.8);color:#fff;z-index:3;
-      display:flex;flex-direction:column;justify-content:center;
-      align-items:center;text-align:center;padding:20px;
-      transition:opacity .4s;
-    }
-    #overlay.hidden{opacity:0;pointer-events:none}
-    #overlay button{
-      margin-top:20px;padding:10px 20px;font-size:1rem;cursor:pointer;
-      border:none;border-radius:4px;background:#fff;color:#000;
-    }
-    #overlay button:hover{background:#eee}
-    #overlay select{
-      margin-top:10px;padding:6px;font-size:1rem;
-    }
-
-    /* ---------- Splash screen ---------- */
-    #splash{
-      position:fixed;top:0;left:0;width:100%;height:100%;
-      background:radial-gradient(circle at center,rgba(0,0,0,.7),#000);
-      color:#fff;z-index:4;overflow:hidden;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      transition:opacity .6s;
-    }
-    #splash.hidden{opacity:0;pointer-events:none}
-    #splash canvas{position:absolute;top:0;left:0;width:100%;height:100%}
-    #splash .title{font-size:2rem;font-weight:600;z-index:1;animation:fadeUp 1s ease-out}
-    #splash .loader{width:60px;height:60px;border-radius:50%;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin 1s linear infinite;z-index:1;margin-top:20px}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-
-    /* ---------- Barra de tareas ---------- */
-    #taskbar{
-      position:fixed;bottom:0;left:0;width:100%;height:40px;
-      background:rgba(0,0,0,.3);display:flex;align-items:center;
-      padding:0 10px;z-index:2
-    }
-    #start-button{
-      width:80px;height:30px;border:none;border-radius:4px;
-      background:var(--accent);color:#fff;cursor:pointer
-    }
-    #start-button:hover{filter:brightness(1.1)}
-    #start-menu{
-      position:absolute;bottom:40px;left:10px;background:var(--window);
-      box-shadow:var(--shadow);border-radius:6px;padding:6px 0;
-      display:none;flex-direction:column
-    }
-    #start-menu.show{display:flex;animation:fadeIn .2s ease-out}
-    .start-item{display:flex;align-items:center;padding:6px 12px;cursor:pointer}
-    .start-item:hover{background:#eee}
-    .start-item img{width:24px;height:24px;margin-right:8px}
-
-    #taskbar-windows{display:flex;align-items:center;margin-left:10px}
-    .task-icon{width:30px;height:30px;margin-left:6px;cursor:pointer}
-    .task-icon img{width:100%;height:100%;border-radius:4px}
-
-    @keyframes fadeIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
-    @keyframes introUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
-    .intro{animation:introUp .4s forwards}
-  </style>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -164,7 +24,7 @@
     <div class="loader"></div>
   </div>
   <div id="container"></div>
-  <video id="camera"></video>
+  <video id="camera" playsinline></video>
 
   <!-- ---------- Ventana de inicio ---------- -->
   <div id="overlay">
@@ -197,9 +57,9 @@
   </script>
 
   <!-- MediaPipe Hands v0.10.x -->
-  <script src="./vendor/mediapipe/hands.min.js"></script>
-  <script src="./vendor/mediapipe/face_mesh.min.js"></script>
-  <script src="./vendor/mediapipe/drawing_utils.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.min.js"></script>
 
   <!-- =======================  APP  ======================= -->
   <script type="module" src="src/splash.js"></script>
