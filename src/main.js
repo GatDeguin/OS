@@ -330,26 +330,28 @@ function layoutIcons(instantly = false) {
   });
 }
 
-function enableIconDrag(obj) {
+function screenToWorld(xScreen, yScreen) {
+  const ndc = new THREE.Vector3(
+    (xScreen / size.w) * 2 - 1,
+    -(yScreen / size.h) * 2 + 1,
+    0.5
+  ).unproject(camera);
+  const dir = ndc.sub(camera.position).normalize();
+  const dist = -camera.position.z / dir.z;
+  return camera.position.clone().add(dir.multiplyScalar(dist));
+}
+
+function makeDraggable(obj) {
   const el = obj.element;
-  let start = { x: 0, y: 0, pos: new THREE.Vector3() };
+  const body = obj.userData.body;
   obj.userData.dragging = false;
 
   const onMove = e => {
     const c = e.touches ? e.touches[0] : e;
-    const newX = start.pos.x + (c.clientX - start.x);
-    const newY = start.pos.y - (c.clientY - start.y);
-    const halfH = camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-    const halfW = halfH * camera.aspect;
-    const pxToWorld = halfH * 2 / size.h;
-    const limitX = halfW - 60 * pxToWorld;
-    const limitY = halfH - 60 * pxToWorld;
-    const clampedX = THREE.MathUtils.clamp(newX, -limitX, limitX);
-    const clampedY = THREE.MathUtils.clamp(newY, -limitY, limitY);
-    const body = obj.userData.body;
-    const dx = clampedX - body.position.x;
-    const dy = clampedY - body.position.y;
-    body.applyImpulse(new CANNON.Vec3(dx * 5, dy * 5, 0), body.position);
+    const pos = screenToWorld(c.clientX, c.clientY);
+    const dx = pos.x - body.position.x;
+    const dy = pos.y - body.position.y;
+    body.applyImpulse(new CANNON.Vec3(dx * 4, dy * 4, 0), body.position);
     e.preventDefault();
   };
 
@@ -358,22 +360,19 @@ function enableIconDrag(obj) {
     document.removeEventListener('touchmove', onMove);
     obj.userData.custom = true;
     obj.userData.dragging = false;
-    obj.userData.basePos.copy(obj.userData.body.position);
-    obj.userData.lastImpulse = obj.userData.body.velocity.clone();
+    obj.userData.basePos.copy(body.position);
+    obj.userData.lastImpulse = body.velocity.clone();
     saveIconPositions();
   };
 
-  el.addEventListener('mousedown', e => {
-    start = { x: e.clientX, y: e.clientY, pos: obj.userData.body.position.clone() };
+  el.addEventListener('mousedown', () => {
     el.classList.add('touching');
     obj.userData.dragging = true;
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', endDrag, { once: true });
   });
 
-  el.addEventListener('touchstart', e => {
-    const c = e.touches[0];
-    start = { x: c.clientX, y: c.clientY, pos: obj.userData.body.position.clone() };
+  el.addEventListener('touchstart', () => {
     el.classList.add('touching');
     obj.userData.dragging = true;
     document.addEventListener('touchmove', onMove, { passive: false });
@@ -415,7 +414,7 @@ APPS.forEach((app, i) => {
     obj.userData.custom = true;
   }
   el.addEventListener('click', () => spawnWindow(app));
-  enableIconDrag(obj);
+  makeDraggable(obj);
 });
 layoutIcons(true);
 
