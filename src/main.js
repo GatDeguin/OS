@@ -6,6 +6,7 @@ import { initWindowSystem, spawnWindow } from './win.js';
 import { setupHands } from './hands.js';
 import { setupGaze } from './gaze.js';
 import { APPS } from './pluginApi.js';
+import store, { subscribe } from './state.js';
 import * as CANNON from 'cannon-es';
 
 /* ---------- Constantes ---------- */
@@ -25,14 +26,7 @@ const gaze      = { x: 0, y: 0 };
 const tilt      = { beta: 0, gamma: 0 };
 
 /* ---------- Preferencias ---------- */
-const PREFS = JSON.parse(localStorage.getItem('prefs') || '{}');
-Object.assign(PREFS, {
-  theme: PREFS.theme || 'light',
-  wallpaper: PREFS.wallpaper || 'default',
-  lang: PREFS.lang || 'es',
-  contrast: PREFS.contrast || 'normal'
-});
-function savePrefs() { localStorage.setItem('prefs', JSON.stringify(PREFS)); }
+const PREFS = store.prefs;
 
 const THEMES = {
   light:  { '--accent': '#0078d4', '--text': '#333', '--window': '#fff' },
@@ -136,12 +130,13 @@ function applyLang(l) {
   });
 }
 
-window.PREFS = PREFS;
-window.savePrefs = savePrefs;
-window.applyTheme = applyTheme;
-window.applyWallpaper = applyWallpaper;
-window.applyLang = applyLang;
-window.applyContrast = applyContrast;
+subscribe(state => {
+  applyTheme(state.prefs.theme);
+  applyWallpaper(state.prefs.wallpaper);
+  applyLang(state.prefs.lang);
+  applyContrast(state.prefs.contrast);
+});
+
 
 function showToast(msg) {
   const el = document.createElement('div');
@@ -253,7 +248,7 @@ if (window.DeviceOrientationEvent) {
   );
   quad.position.z = -500;      // dentro del frustum
   sceneGL.add(quad);
-  applyWallpaper(PREFS.wallpaper);
+  applyWallpaper(store.prefs.wallpaper);
 })();
 
 /* ---------- Partículas ---------- */
@@ -460,9 +455,9 @@ startSearch.addEventListener('keydown', e => {
     }
   }
 });
-applyTheme(PREFS.theme);
-applyContrast(PREFS.contrast);
-applyLang(PREFS.lang);
+applyTheme(store.prefs.theme);
+applyContrast(store.prefs.contrast);
+applyLang(store.prefs.lang);
 startButton.onclick = () => {
   startMenu.classList.toggle('show');
   if (startMenu.classList.contains('show')) {
