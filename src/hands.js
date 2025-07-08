@@ -31,7 +31,7 @@ export class HandTracker {
     this.video = video;
     video.addEventListener('playing', async () => {
       try {
-        const mod = await import('https://cdn.skypack.dev/@mediapipe/drawing_utils@0.4.1646425229');
+        const mod = await import('../vendor/mediapipe/drawing_utils.min.js');
         drawConnectors = mod.drawConnectors;
         drawLandmarks = mod.drawLandmarks;
         HAND_CONNECTIONS = mod.HAND_CONNECTIONS;
