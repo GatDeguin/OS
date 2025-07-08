@@ -179,15 +179,22 @@ textarea{resize:none;padding:8px;font-family:inherit}
 
 #hand-cursor{
   position:absolute;
-  width:20px;
-  height:20px;
+  width:24px;
+  height:24px;
   border:2px solid #fff;
   border-radius:50%;
   pointer-events:none;
+  background:url('img/hand.svg') center/contain no-repeat;
+  background-color:rgba(0,0,0,.2);
   z-index:3;
   transform:translate(-50%, -50%);
-  transition:background .1s;
+  transition:width .1s,height .1s,background-color .1s;
 }
 #hand-cursor.active{
-  background:rgba(255,255,255,.5);
+  width:32px;
+  height:32px;
+  background-color:rgba(0,120,212,.5);
+}
+#hand-cursor.dragging{
+  background-color:rgba(0,120,212,.8);
 }
