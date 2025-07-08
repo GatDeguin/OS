@@ -22,15 +22,9 @@ export class HandTracker {
     container.appendChild(canvas);
     this.ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    this.hands = new Hands({
-      locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${f}`
-    });
-    this.hands.setOptions({
-      maxNumHands: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7
-    });
-    this.hands.onResults(r => this.onResults(r));
+    this.worker = new Worker('../workers/handsWorker.js');
+    this.worker.onmessage = e => this.onResults(e.data);
+    this.worker.postMessage({ type: 'init' });
   }
 
   start(video) {
@@ -38,8 +32,9 @@ export class HandTracker {
     video.addEventListener('playing', () => this.loop());
   }
 
-  loop() {
-    this.hands.send({ image: this.video });
+  async loop() {
+    const bitmap = await createImageBitmap(this.video);
+    this.worker.postMessage({ type: 'frame', image: bitmap }, [bitmap]);
     requestAnimationFrame(() => this.loop());
   }
 
@@ -164,5 +159,5 @@ export class HandTracker {
 export function setupHands({ container, size, camera, sceneCSS, video }) {
   const tracker = new HandTracker({ container, size, camera, sceneCSS });
   tracker.start(video);
-  return tracker.hands;
+  return tracker.worker;
 }
