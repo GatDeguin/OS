@@ -12,8 +12,8 @@ Then visit [http://localhost:8000](http://localhost:8000) in your browser.
 
 ## Testing
 
-This project does not yet include automated tests. Please verify that pages load
-and function as expected in your browser after making changes.
+Run `NODE_OPTIONS=--experimental-vm-modules npm test` to execute the Jest test suite.
+
 
 ## Submitting contributions
 
