@@ -1,6 +1,8 @@
 # OS
 
 A minimal 3D desktop demo using Three.js and MediaPipe.
+When camera permission is granted a 3D hand is rendered in the scene.
+This virtual hand mirrors yours and can drag windows or click icons.
 
 The environment includes several simple built‑in applications such as a
 terminal emulator, text editor, web browser, live clock and a basic
