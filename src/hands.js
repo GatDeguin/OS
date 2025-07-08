@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+let drawConnectors, drawLandmarks, HAND_CONNECTIONS;
+
 export class HandTracker {
   constructor({ container, size, camera, sceneCSS }) {
     this.size = size;
@@ -22,14 +24,26 @@ export class HandTracker {
     container.appendChild(canvas);
     this.ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    this.worker = new Worker('../workers/handsWorker.js');
-    this.worker.onmessage = e => this.onResults(e.data);
-    this.worker.postMessage({ type: 'init' });
+    this.worker = null;
   }
 
   start(video) {
     this.video = video;
-    video.addEventListener('playing', () => this.loop());
+    video.addEventListener('playing', async () => {
+      try {
+        const mod = await import('https://cdn.skypack.dev/@mediapipe/drawing_utils');
+        drawConnectors = mod.drawConnectors;
+        drawLandmarks = mod.drawLandmarks;
+        HAND_CONNECTIONS = mod.HAND_CONNECTIONS;
+      } catch (e) {
+        window.showToast && window.showToast('Error al cargar MediaPipe Hands');
+        return;
+      }
+      this.worker = new Worker('../workers/handsWorker.js');
+      this.worker.onmessage = e => this.onResults(e.data);
+      this.worker.postMessage({ type: 'init' });
+      this.loop();
+    }, { once: true });
   }
 
   async loop() {
